@@ -13,43 +13,45 @@ import {
 import { isDarkMode } from 'perry/system';
 import { MongoClient } from 'mongodb';
 
-// --- Theme colors (RGBA 0-1) ---
+// --- Theme ---
 const dark = isDarkMode();
 
-// Background
-const bgR = dark ? 0.169 : 1.0;
-const bgG = dark ? 0.176 : 0.973;
-const bgB = dark ? 0.259 : 0.941;
+// Backgrounds
+const bgR = dark ? 0.137 : 0.949;
+const bgG = dark ? 0.145 : 0.949;
+const bgB = dark ? 0.208 : 0.957;
 
-// Surface
-const sfR = dark ? 0.227 : 1.0;
-const sfG = dark ? 0.239 : 1.0;
-const sfB = dark ? 0.337 : 1.0;
+const sfR = dark ? 0.192 : 1.0;
+const sfG = dark ? 0.200 : 1.0;
+const sfB = dark ? 0.278 : 1.0;
+
+// Sidebar / toolbar bg
+const tbR = dark ? 0.161 : 0.937;
+const tbG = dark ? 0.169 : 0.937;
+const tbB = dark ? 0.239 : 0.945;
 
 // Text
-const txR = dark ? 0.910 : 0.169;
-const txG = dark ? 0.914 : 0.176;
-const txB = dark ? 0.929 : 0.259;
+const txR = dark ? 0.910 : 0.133;
+const txG = dark ? 0.914 : 0.137;
+const txB = dark ? 0.929 : 0.192;
 
-// Text secondary
 const tsR = dark ? 0.553 : 0.420;
 const tsG = dark ? 0.600 : 0.443;
-const tsB = dark ? 0.682 : 0.580;
+const tsB = dark ? 0.682 : 0.506;
 
-// Text muted
 const tmR = dark ? 0.420 : 0.553;
 const tmG = dark ? 0.443 : 0.600;
-const tmB = dark ? 0.580 : 0.682;
-
-// Border
-const brR = dark ? 0.290 : 0.910;
-const brG = dark ? 0.302 : 0.914;
-const brB = dark ? 0.416 : 0.929;
+const tmB = dark ? 0.506 : 0.682;
 
 // Mango orange
 const moR = 1.0;
 const moG = 0.624;
 const moB = 0.110;
+
+// Orange hover / light accent bg
+const oaBgR = dark ? 0.25 : 1.0;
+const oaBgG = dark ? 0.20 : 0.953;
+const oaBgB = dark ? 0.10 : 0.890;
 
 // Error red
 const erR = 0.910;
@@ -61,35 +63,202 @@ const sgR = 0.180;
 const sgG = 0.769;
 const sgB = 0.714;
 
-// --- In-memory connection storage ---
+// Border
+const brR = dark ? 0.255 : 0.890;
+const brG = dark ? 0.263 : 0.894;
+const brB = dark ? 0.353 : 0.910;
+
+// Monospace font
+const monoFont = 'Menlo';
+
+// --- State ---
 let connectionNames: string[] = [];
 let connectionHosts: string[] = [];
 let connectionPorts: string[] = [];
 let connectionUris: string[] = [];
 
-// Form inputs
 let formName = '';
 let formHost = 'localhost';
 let formPort = '27017';
 let formUri = '';
 
-// Browser inputs
 let currentDbName = '';
 let currentCollName = '';
 let currentFilter = '{}';
 
-// MongoDB client
 let mongoClient: any = null;
 let currentConnUri = '';
+let currentConnName = '';
 
-// Track active query context for re-query after edits
 let activeDbName = '';
 let activeCollName = '';
 let lastQueryFilter = '{}';
 
-// Edit state: JSON string of document being edited
 let editDocJson = '';
 
+// --- Helpers ---
+
+// Make a styled label
+function makeLabel(text: string, size: number, bold: boolean): any {
+  const t = Text(text);
+  textSetFontSize(t, size);
+  if (bold) textSetFontWeight(t, size, 0.5);
+  textSetColor(t, txR, txG, txB, 1.0);
+  return t;
+}
+
+function makeMuted(text: string, size: number): any {
+  const t = Text(text);
+  textSetFontSize(t, size);
+  textSetColor(t, tmR, tmG, tmB, 1.0);
+  return t;
+}
+
+function makeSecondary(text: string, size: number): any {
+  const t = Text(text);
+  textSetFontSize(t, size);
+  textSetColor(t, tsR, tsG, tsB, 1.0);
+  return t;
+}
+
+function makeMono(text: string, size: number): any {
+  const t = Text(text);
+  textSetFontSize(t, size);
+  textSetFontFamily(t, monoFont);
+  textSetColor(t, txR, txG, txB, 1.0);
+  return t;
+}
+
+function makeMonoMuted(text: string, size: number): any {
+  const t = Text(text);
+  textSetFontSize(t, size);
+  textSetFontFamily(t, monoFont);
+  textSetColor(t, tmR, tmG, tmB, 1.0);
+  return t;
+}
+
+function makeCard(children: any[], gap: number): any {
+  const card = VStack(gap, children);
+  widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
+  setCornerRadius(card, 10);
+  setPadding(card, 14, 16, 14, 16);
+  return card;
+}
+
+function makePrimaryBtn(label: string, handler: () => void): any {
+  const btn = Button(label, handler);
+  // Perry buttons with bordered style get the orange bg
+  buttonSetTextColor(btn, moR, moG, moB, 1.0);
+  return btn;
+}
+
+function makeGhostBtn(label: string, handler: () => void): any {
+  const btn = Button(label, handler);
+  buttonSetBordered(btn, 0);
+  buttonSetTextColor(btn, tsR, tsG, tsB, 1.0);
+  return btn;
+}
+
+function makeDangerBtn(label: string, handler: () => void): any {
+  const btn = Button(label, handler);
+  buttonSetBordered(btn, 0);
+  buttonSetTextColor(btn, erR, erG, erB, 1.0);
+  return btn;
+}
+
+// Extract a short display _id from a doc JSON string
+function extractIdShort(docJson: string): string {
+  const idKey = '"$oid":"';
+  const oidStart = docJson.indexOf(idKey);
+  if (oidStart >= 0) {
+    const valStart = oidStart + idKey.length;
+    const valEnd = docJson.indexOf('"', valStart);
+    if (valEnd > 0) {
+      const full = docJson.substring(valStart, valEnd);
+      // Show first 4 and last 4 chars
+      if (full.length > 10) {
+        return full.substring(0, 6) + '...' + full.substring(full.length - 4);
+      }
+      return full;
+    }
+  }
+  // Fallback: try simple string _id
+  const simpleKey = '"_id":"';
+  const simpleStart = docJson.indexOf(simpleKey);
+  if (simpleStart >= 0) {
+    const valStart = simpleStart + simpleKey.length;
+    const valEnd = docJson.indexOf('"', valStart);
+    if (valEnd > 0) return docJson.substring(valStart, valEnd);
+  }
+  return '?';
+}
+
+// Extract top-level fields from JSON string for display
+// Returns array of [key, value] pairs (both as strings)
+function extractFields(docJson: string): string[][] {
+  const fields: string[][] = [];
+  let i = 1; // skip opening {
+  while (i < docJson.length) {
+    // Skip whitespace
+    while (i < docJson.length && (docJson[i] === ' ' || docJson[i] === ',')) i = i + 1;
+    if (docJson[i] === '}' || i >= docJson.length) break;
+
+    // Read key (expect "key":)
+    if (docJson[i] !== '"') break;
+    const keyStart = i + 1;
+    i = i + 1;
+    while (i < docJson.length && docJson[i] !== '"') i = i + 1;
+    const key = docJson.substring(keyStart, i);
+    i = i + 1; // skip closing "
+    if (docJson[i] === ':') i = i + 1; // skip :
+
+    // Read value
+    let value = '';
+    if (docJson[i] === '"') {
+      // String value
+      const valStart = i + 1;
+      i = i + 1;
+      while (i < docJson.length && docJson[i] !== '"') {
+        if (docJson[i] === '\\') i = i + 1; // skip escaped char
+        i = i + 1;
+      }
+      value = docJson.substring(valStart, i);
+      i = i + 1; // skip closing "
+    } else if (docJson[i] === '{') {
+      // Object value — find matching }
+      const valStart = i;
+      let depth = 0;
+      while (i < docJson.length) {
+        if (docJson[i] === '{') depth = depth + 1;
+        if (docJson[i] === '}') depth = depth - 1;
+        i = i + 1;
+        if (depth === 0) break;
+      }
+      value = docJson.substring(valStart, i);
+    } else if (docJson[i] === '[') {
+      // Array value — find matching ]
+      const valStart = i;
+      let depth = 0;
+      while (i < docJson.length) {
+        if (docJson[i] === '[') depth = depth + 1;
+        if (docJson[i] === ']') depth = depth - 1;
+        i = i + 1;
+        if (depth === 0) break;
+      }
+      value = docJson.substring(valStart, i);
+    } else {
+      // Number, bool, null
+      const valStart = i;
+      while (i < docJson.length && docJson[i] !== ',' && docJson[i] !== '}') i = i + 1;
+      value = docJson.substring(valStart, i);
+    }
+
+    fields.push([key, value]);
+  }
+  return fields;
+}
+
+// --- MongoDB ---
 async function connectToMongo(uri: string): Promise<boolean> {
   try {
     mongoClient = await MongoClient.connect(uri);
@@ -105,8 +274,7 @@ async function queryCollection(dbName: string, collName: string, filter: string)
   try {
     const db = mongoClient.db(dbName);
     const coll = db.collection(collName);
-    const filterStr = filter || '{}';
-    const docs = await coll.find(filterStr);
+    const docs = await coll.find(filter || '{}');
     if (typeof docs === 'string') return docs;
     return JSON.stringify(docs);
   } catch (e: any) {
@@ -118,19 +286,63 @@ async function updateDocument(dbName: string, collName: string, filter: string, 
   if (!mongoClient) return 0;
   const db = mongoClient.db(dbName);
   const coll = db.collection(collName);
-  const count = await coll.updateOne(filter, update);
-  return count;
+  return await coll.updateOne(filter, update);
 }
 
 async function deleteDocument(dbName: string, collName: string, filter: string): Promise<number> {
   if (!mongoClient) return 0;
   const db = mongoClient.db(dbName);
   const coll = db.collection(collName);
-  const count = await coll.deleteOne(filter);
-  return count;
+  return await coll.deleteOne(filter);
 }
 
-// --- Status text ---
+function extractIdFilter(docJson: string): string {
+  const idKey = '"_id":';
+  const idStart = docJson.indexOf(idKey);
+  if (idStart < 0) return '{}';
+  const valueStart = idStart + idKey.length;
+  if (docJson[valueStart] === '{') {
+    let depth = 0;
+    for (let i = valueStart; i < docJson.length; i++) {
+      if (docJson[i] === '{') depth = depth + 1;
+      if (docJson[i] === '}') depth = depth - 1;
+      if (depth === 0) return '{' + idKey + docJson.substring(valueStart, i + 1) + '}';
+    }
+  } else if (docJson[valueStart] === '"') {
+    const endQuote = docJson.indexOf('"', valueStart + 1);
+    if (endQuote > 0) return '{' + idKey + docJson.substring(valueStart, endQuote + 1) + '}';
+  }
+  return '{}';
+}
+
+function removeIdFromJson(docJson: string): string {
+  const idKey = '"_id":';
+  const idStart = docJson.indexOf(idKey);
+  if (idStart < 0) return docJson;
+  const valueStart = idStart + idKey.length;
+  let valueEnd = valueStart;
+  if (docJson[valueStart] === '{') {
+    let depth = 0;
+    for (let i = valueStart; i < docJson.length; i++) {
+      if (docJson[i] === '{') depth = depth + 1;
+      if (docJson[i] === '}') depth = depth - 1;
+      if (depth === 0) { valueEnd = i + 1; break; }
+    }
+  } else if (docJson[valueStart] === '"') {
+    valueEnd = docJson.indexOf('"', valueStart + 1) + 1;
+  } else {
+    for (let i = valueStart; i < docJson.length; i++) {
+      if (docJson[i] === ',' || docJson[i] === '}') { valueEnd = i; break; }
+    }
+  }
+  let before = docJson.substring(0, idStart);
+  let after = docJson.substring(valueEnd);
+  if (after[0] === ',') after = after.substring(1);
+  else if (before[before.length - 1] === ',') before = before.substring(0, before.length - 1);
+  return before + after;
+}
+
+// --- Status ---
 const statusText = Text('');
 textSetFontSize(statusText, 12);
 widgetSetHidden(statusText, 1);
@@ -141,53 +353,73 @@ function showStatus(msg: string, isError: boolean): void {
   widgetSetHidden(statusText, 0);
 }
 
-// --- Connection list container ---
-const connListContainer = VStack(8, []);
+// ============================================================
+//  CONNECTION SCREEN
+// ============================================================
+
+const connListContainer = VStack(10, []);
 
 function refreshConnectionList(): void {
   widgetClearChildren(connListContainer);
 
   if (connectionNames.length === 0) {
-    const empty = Text('No saved connections. Add one to get started.');
-    textSetFontSize(empty, 14);
-    textSetColor(empty, tmR, tmG, tmB, 1.0);
-    widgetAddChild(connListContainer, empty);
+    // Empty state
+    const emptyCard = VStack(8, []);
+    widgetSetBackgroundColor(emptyCard, sfR, sfG, sfB, 1.0);
+    setCornerRadius(emptyCard, 12);
+    setPadding(emptyCard, 32, 24, 32, 24);
+
+    const emptyIcon = Text('No connections yet');
+    textSetFontSize(emptyIcon, 16);
+    textSetFontWeight(emptyIcon, 16, 0.5);
+    textSetColor(emptyIcon, txR, txG, txB, 1.0);
+
+    const emptyHint = Text('Click "+ New Connection" to add your first MongoDB server.');
+    textSetFontSize(emptyHint, 13);
+    textSetColor(emptyHint, tmR, tmG, tmB, 1.0);
+
+    widgetAddChild(emptyCard, emptyIcon);
+    widgetAddChild(emptyCard, emptyHint);
+    widgetAddChild(connListContainer, emptyCard);
     return;
   }
 
   for (let i = 0; i < connectionNames.length; i++) {
-    const nameText = Text(connectionNames[i] || 'Untitled');
-    textSetFontSize(nameText, 16);
-    textSetFontWeight(nameText, 16, 0.5);
-    textSetColor(nameText, txR, txG, txB, 1.0);
-
-    const hostPort = `${connectionHosts[i]}:${connectionPorts[i]}`;
-    const detailText = Text(hostPort);
-    textSetFontSize(detailText, 12);
-    textSetColor(detailText, tsR, tsG, tsB, 1.0);
-
     const connIdx = i;
+
+    // Orange accent bar
+    const accentBar = VStack(0, []);
+    widgetSetBackgroundColor(accentBar, moR, moG, moB, 1.0);
+    setCornerRadius(accentBar, 3);
+    setPadding(accentBar, 20, 3, 20, 3);
+
+    const nameText = makeLabel(connectionNames[i] || 'Untitled', 15, true);
+
+    const hostPort = connectionUris[i] || `${connectionHosts[i]}:${connectionPorts[i]}`;
+    const detailText = makeMonoMuted(hostPort, 11);
+
+    const info = VStack(3, [nameText, detailText]);
+
     const connectBtn = Button('Connect', async () => {
       const uri = connectionUris[connIdx] || `mongodb://${connectionHosts[connIdx]}:${connectionPorts[connIdx]}`;
       showStatus('Connecting...', false);
       const ok = await connectToMongo(uri);
       if (ok) {
-        showStatus('Connected!', false);
-        textSetString(browserTitle, 'Connected');
+        currentConnName = connectionNames[connIdx] || 'Server';
+        textSetString(connLabel, currentConnName);
         showScreen(1);
       } else {
         showStatus('Connection failed', true);
       }
     });
 
-    const idx = i;
-    const deleteBtn = Button('Delete', () => {
+    const deleteBtn = makeDangerBtn('Remove', () => {
       const newNames: string[] = [];
       const newHosts: string[] = [];
       const newPorts: string[] = [];
       const newUris: string[] = [];
       for (let j = 0; j < connectionNames.length; j++) {
-        if (j !== idx) {
+        if (j !== connIdx) {
           newNames.push(connectionNames[j]);
           newHosts.push(connectionHosts[j]);
           newPorts.push(connectionPorts[j]);
@@ -198,16 +430,13 @@ function refreshConnectionList(): void {
       connectionHosts = newHosts;
       connectionPorts = newPorts;
       connectionUris = newUris;
-
       refreshConnectionList();
     });
-    buttonSetBordered(deleteBtn, 0);
-    buttonSetTextColor(deleteBtn, erR, erG, erB, 1.0);
 
-    const row = HStack(8, [nameText, Spacer(), detailText, deleteBtn, connectBtn]);
-    const card = VStack(4, [row]);
+    const row = HStack(12, [accentBar, info, Spacer(), deleteBtn, connectBtn]);
+    const card = VStack(0, [row]);
     widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
-    setCornerRadius(card, 8);
+    setCornerRadius(card, 10);
     setPadding(card, 12, 16, 12, 16);
 
     widgetAddChild(connListContainer, card);
@@ -223,179 +452,164 @@ function showConnectionForm(): void {
   widgetSetHidden(connListContainer, 1);
   widgetSetHidden(formContainer, 0);
 
-  const title = Text('New Connection');
-  textSetFontSize(title, 20);
-  textSetFontWeight(title, 20, 0.5);
-  textSetColor(title, txR, txG, txB, 1.0);
+  const formCard = VStack(12, []);
+  widgetSetBackgroundColor(formCard, sfR, sfG, sfB, 1.0);
+  setCornerRadius(formCard, 12);
+  setPadding(formCard, 20, 24, 20, 24);
 
-  const nameField = TextField('Connection name', (val: string) => { formName = val; });
-  const hostField = TextField('Host (default: localhost)', (val: string) => { formHost = val || 'localhost'; });
-  const portField = TextField('Port (default: 27017)', (val: string) => { formPort = val || '27017'; });
-  const uriField = TextField('Or paste connection string', (val: string) => { formUri = val; });
+  const title = makeLabel('New Connection', 18, true);
 
-  const saveBtn = Button('Save', () => {
+  const nameLabel = makeSecondary('Name', 11);
+  const nameField = TextField('e.g. Production, Local dev...', (val: string) => { formName = val; });
+
+  const hostLabel = makeSecondary('Host', 11);
+  const hostField = TextField('localhost', (val: string) => { formHost = val || 'localhost'; });
+
+  const portLabel = makeSecondary('Port', 11);
+  const portField = TextField('27017', (val: string) => { formPort = val || '27017'; });
+
+  const divLabel = makeMuted('or connect via URI', 11);
+
+  const uriLabel = makeSecondary('Connection String', 11);
+  const uriField = TextField('mongodb://user:pass@host:port/db', (val: string) => { formUri = val; });
+
+  const saveBtn = Button('Save Connection', () => {
     connectionNames.push(formName || 'Untitled');
     connectionHosts.push(formHost);
     connectionPorts.push(formPort);
     connectionUris.push(formUri);
-
-
     formName = '';
     formHost = 'localhost';
     formPort = '27017';
     formUri = '';
-
     widgetSetHidden(formContainer, 1);
     widgetSetHidden(connListContainer, 0);
     refreshConnectionList();
   });
 
-  const cancelBtn = Button('Cancel', () => {
+  const cancelBtn = makeGhostBtn('Cancel', () => {
     widgetSetHidden(formContainer, 1);
     widgetSetHidden(connListContainer, 0);
   });
-  buttonSetBordered(cancelBtn, 0);
 
-  widgetAddChild(formContainer, title);
-  widgetAddChild(formContainer, nameField);
-  widgetAddChild(formContainer, hostField);
-  widgetAddChild(formContainer, portField);
-  widgetAddChild(formContainer, Divider());
-  widgetAddChild(formContainer, uriField);
-  widgetAddChild(formContainer, HStack(8, [cancelBtn, Spacer(), saveBtn]));
+  widgetAddChild(formCard, title);
+  widgetAddChild(formCard, nameLabel);
+  widgetAddChild(formCard, nameField);
+  widgetAddChild(formCard, hostLabel);
+  widgetAddChild(formCard, hostField);
+  widgetAddChild(formCard, portLabel);
+  widgetAddChild(formCard, portField);
+  widgetAddChild(formCard, Divider());
+  widgetAddChild(formCard, divLabel);
+  widgetAddChild(formCard, uriLabel);
+  widgetAddChild(formCard, uriField);
+  widgetAddChild(formCard, HStack(8, [cancelBtn, Spacer(), saveBtn]));
+
+  widgetAddChild(formContainer, formCard);
 }
 
-// --- Document display area ---
-const docsContainer = VStack(4, []);
+// Build connection screen
+refreshConnectionList();
+
+const connScroll = ScrollView();
+const connScrollInner = VStack(10, [connListContainer, formContainer]);
+scrollviewSetChild(connScroll, connScrollInner);
+
+const addBtn = Button('+ New Connection', () => { showConnectionForm(); });
+
+const connTitle = Text('Mango');
+textSetFontSize(connTitle, 28);
+textSetFontWeight(connTitle, 28, 0.7);
+textSetColor(connTitle, moR, moG, moB, 1.0);
+
+const connSubtitle = makeSecondary('MongoDB GUI', 13);
+
+const connectionScreen = VStack(0, [
+  // Header
+  VStack(16, [
+    HStack(8, [VStack(2, [connTitle, connSubtitle]), Spacer(), addBtn]),
+    statusText,
+  ]),
+  Divider(),
+  connScroll,
+]);
+setPadding(connectionScreen, 24, 32, 24, 32);
+widgetSetBackgroundColor(connectionScreen, bgR, bgG, bgB, 1.0);
+
+// ============================================================
+//  BROWSER SCREEN
+// ============================================================
+
+const docsContainer = VStack(8, []);
 const docsScroll = ScrollView();
 scrollviewSetChild(docsScroll, docsContainer);
 
-const docInfoText = Text('Enter a database and collection name, then click Query.');
-textSetFontSize(docInfoText, 14);
-textSetColor(docInfoText, tmR, tmG, tmB, 1.0);
+// Initial placeholder
+const docInfoText = makeMuted('Enter a database and collection, then run a query.', 13);
 widgetAddChild(docsContainer, docInfoText);
 
-// --- Build connection screen ---
-refreshConnectionList();
+// --- Toolbar ---
+const connLabel = Text('Connected');
+textSetFontSize(connLabel, 11);
+textSetFontWeight(connLabel, 11, 0.5);
+textSetColor(connLabel, sgR, sgG, sgB, 1.0);
 
-const addBtn = Button('+ New Connection', () => {
-  showConnectionForm();
-});
+const connDot = Text('  ');
+textSetFontSize(connDot, 11);
+textSetColor(connDot, sgR, sgG, sgB, 1.0);
 
-const connTitle = Text('Mango');
-textSetFontSize(connTitle, 24);
-textSetFontWeight(connTitle, 24, 0.7);
-textSetColor(connTitle, moR, moG, moB, 1.0);
-
-const connSubtitle = Text('MongoDB GUI');
-textSetFontSize(connSubtitle, 12);
-textSetColor(connSubtitle, tsR, tsG, tsB, 1.0);
-
-const connectionScreen = VStack(16, [
-  HStack(8, [
-    VStack(0, [connTitle, connSubtitle]),
-    Spacer(),
-    addBtn,
-  ]),
-  statusText,
-  Divider(),
-  connListContainer,
-  formContainer,
-  Spacer(),
-]);
-setPadding(connectionScreen, 24, 32, 24, 32);
-
-// --- Build browser screen ---
-const disconnectBtn = Button('Disconnect', async () => {
+const disconnectBtn = makeDangerBtn('Disconnect', async () => {
   if (mongoClient) {
     try { await mongoClient.close(); } catch (e: any) {}
     mongoClient = null;
   }
   showScreen(0);
 });
-buttonSetBordered(disconnectBtn, 0);
-buttonSetTextColor(disconnectBtn, erR, erG, erB, 1.0);
 
-const browserTitle = Text('Connected');
+const browserTitle = Text('Mango');
 textSetFontSize(browserTitle, 20);
-textSetFontWeight(browserTitle, 20, 0.5);
-textSetColor(browserTitle, txR, txG, txB, 1.0);
+textSetFontWeight(browserTitle, 20, 0.7);
+textSetColor(browserTitle, moR, moG, moB, 1.0);
 
-const dbField = TextField('Database name', (val: string) => { currentDbName = val; });
-const collField = TextField('Collection name', (val: string) => { currentCollName = val; });
-const filterField = TextField('Filter JSON (default: {})', (val: string) => {
-  currentFilter = val || '{}';
+// --- Query bar ---
+const dbField = TextField('database', (val: string) => { currentDbName = val; });
+const collField = TextField('collection', (val: string) => { currentCollName = val; });
+const filterField = TextField('filter: {}', (val: string) => { currentFilter = val || '{}'; });
+
+// Context breadcrumb
+const breadcrumb = Text('');
+textSetFontSize(breadcrumb, 12);
+textSetFontWeight(breadcrumb, 12, 0.5);
+textSetColor(breadcrumb, moR, moG, moB, 1.0);
+widgetSetHidden(breadcrumb, 1);
+
+async function runQuery(dbName: string, collName: string, filter: string): Promise<void> {
+  widgetClearChildren(docsContainer);
+  if (!mongoClient) {
+    widgetAddChild(docsContainer, makeMuted('Not connected to MongoDB.', 13));
+    return;
+  }
+  if (!dbName || !collName) {
+    widgetAddChild(docsContainer, makeMuted('Enter both database and collection names.', 13));
+    return;
+  }
+
+  activeDbName = dbName;
+  activeCollName = collName;
+  lastQueryFilter = filter;
+
+  textSetString(breadcrumb, dbName + '.' + collName);
+  widgetSetHidden(breadcrumb, 0);
+
+  widgetAddChild(docsContainer, makeMuted('Querying...', 13));
+
+  const result = await queryCollection(dbName, collName, filter);
+  displayDocs(result);
+}
+
+const queryBtn = Button('Run Query', async () => {
+  await runQuery(currentDbName, currentCollName, currentFilter);
 });
-
-// Extract _id filter string from a JSON document string using string manipulation
-// e.g. from '{"_id":{"$oid":"abc123"},"name":"Alice",...}' extracts '{"_id":{"$oid":"abc123"}}'
-function extractIdFilter(docJson: string): string {
-  // Find the _id value: look for "_id": followed by the value
-  const idKey = '"_id":';
-  const idStart = docJson.indexOf(idKey);
-  if (idStart < 0) return '{}';
-
-  const valueStart = idStart + idKey.length;
-  // The _id value could be {"$oid":"..."} or a simple string/number
-  if (docJson[valueStart] === '{') {
-    // Find matching closing brace
-    let depth = 0;
-    for (let i = valueStart; i < docJson.length; i++) {
-      if (docJson[i] === '{') depth = depth + 1;
-      if (docJson[i] === '}') depth = depth - 1;
-      if (depth === 0) {
-        const idValue = docJson.substring(valueStart, i + 1);
-        return '{' + idKey + idValue + '}';
-      }
-    }
-  } else if (docJson[valueStart] === '"') {
-    // Simple string _id
-    const endQuote = docJson.indexOf('"', valueStart + 1);
-    if (endQuote > 0) {
-      const idValue = docJson.substring(valueStart, endQuote + 1);
-      return '{' + idKey + idValue + '}';
-    }
-  }
-  return '{}';
-}
-
-// Remove _id field from JSON string, return the remaining fields as a JSON object string
-function removeIdFromJson(docJson: string): string {
-  // Parse and rebuild without _id — but since JSON.parse + property access crashes,
-  // we do it via string manipulation.
-  // Find "_id":{...}, or "_id":"..." and remove it
-  const idKey = '"_id":';
-  const idStart = docJson.indexOf(idKey);
-  if (idStart < 0) return docJson;
-
-  const valueStart = idStart + idKey.length;
-  let valueEnd = valueStart;
-
-  if (docJson[valueStart] === '{') {
-    let depth = 0;
-    for (let i = valueStart; i < docJson.length; i++) {
-      if (docJson[i] === '{') depth = depth + 1;
-      if (docJson[i] === '}') depth = depth - 1;
-      if (depth === 0) { valueEnd = i + 1; break; }
-    }
-  } else if (docJson[valueStart] === '"') {
-    valueEnd = docJson.indexOf('"', valueStart + 1) + 1;
-  } else {
-    // Number or other — find next comma or closing brace
-    for (let i = valueStart; i < docJson.length; i++) {
-      if (docJson[i] === ',' || docJson[i] === '}') { valueEnd = i; break; }
-    }
-  }
-
-  // Remove the _id entry and any trailing/leading comma
-  let before = docJson.substring(0, idStart);
-  let after = docJson.substring(valueEnd);
-  // Clean up commas
-  if (after[0] === ',') after = after.substring(1);
-  else if (before[before.length - 1] === ',') before = before.substring(0, before.length - 1);
-
-  return before + after;
-}
 
 // --- Edit view ---
 function showEditView(docJson: string): void {
@@ -403,187 +617,157 @@ function showEditView(docJson: string): void {
 
   const idFilter = extractIdFilter(docJson);
   const editableJson = removeIdFromJson(docJson);
+  const idShort = extractIdShort(docJson);
 
-  const editTitle = Text('Edit Document');
-  textSetFontSize(editTitle, 16);
-  textSetFontWeight(editTitle, 16, 0.5);
-  textSetColor(editTitle, txR, txG, txB, 1.0);
-  widgetAddChild(docsContainer, editTitle);
+  // Header
+  const editHeader = HStack(8, [
+    makeLabel('Edit Document', 16, true),
+    Spacer(),
+    makeMonoMuted(idShort, 11),
+  ]);
 
-  const idText = Text('_id: ' + idFilter);
-  textSetFontSize(idText, 12);
-  textSetColor(idText, tsR, tsG, tsB, 1.0);
-  widgetAddChild(docsContainer, idText);
+  const editCard = VStack(10, []);
+  widgetSetBackgroundColor(editCard, sfR, sfG, sfB, 1.0);
+  setCornerRadius(editCard, 10);
+  setPadding(editCard, 16, 20, 16, 20);
 
-  const editField = TextField('Document JSON (without _id)', (val: string) => {
-    editDocJson = val;
-  });
+  const fieldLabel = makeSecondary('Document JSON (without _id)', 11);
+
+  const editField = TextField('{ ... }', (val: string) => { editDocJson = val; });
   textfieldSetString(editField, editableJson);
   editDocJson = editableJson;
-  widgetAddChild(docsContainer, editField);
 
-  const saveBtn = Button('Save', async () => {
+  const saveBtn = Button('Save Changes', async () => {
     const currentJson = textfieldGetString(editField);
     const updateStr = '{"$set":' + currentJson + '}';
-    const modified = await updateDocument(activeDbName, activeCollName, idFilter, updateStr);
+    await updateDocument(activeDbName, activeCollName, idFilter, updateStr);
     const result = await queryCollection(activeDbName, activeCollName, lastQueryFilter);
     displayDocs(result);
   });
 
-  const deleteBtn = Button('Delete', async () => {
+  const deleteBtn = makeDangerBtn('Delete Document', async () => {
     const deleted = await deleteDocument(activeDbName, activeCollName, idFilter);
     if (deleted > 0) {
       showStatus('Document deleted', false);
     } else {
       showStatus('Delete failed', true);
     }
-
     const result = await queryCollection(activeDbName, activeCollName, lastQueryFilter);
     displayDocs(result);
   });
-  buttonSetBordered(deleteBtn, 0);
-  buttonSetTextColor(deleteBtn, erR, erG, erB, 1.0);
 
-  const cancelBtn = Button('Back', async () => {
+  const backBtn = makeGhostBtn('Back to results', async () => {
     const result = await queryCollection(activeDbName, activeCollName, lastQueryFilter);
     displayDocs(result);
   });
-  buttonSetBordered(cancelBtn, 0);
 
-  const btnRow = HStack(8, [deleteBtn, Spacer(), cancelBtn, saveBtn]);
-  widgetAddChild(docsContainer, btnRow);
+  widgetAddChild(editCard, editHeader);
+  widgetAddChild(editCard, Divider());
+  widgetAddChild(editCard, fieldLabel);
+  widgetAddChild(editCard, editField);
+  widgetAddChild(editCard, HStack(8, [deleteBtn, Spacer(), backBtn, saveBtn]));
+
+  widgetAddChild(docsContainer, editCard);
 }
 
-// --- Document list view ---
+// --- Document list ---
 function displayDocs(jsonStr: string): void {
   widgetClearChildren(docsContainer);
   let docArray: any[] = [];
   try {
     const parsed = JSON.parse(jsonStr);
     if (parsed.error) {
-      const errText = Text('Error: ' + parsed.error);
-      textSetColor(errText, erR, erG, erB, 1.0);
-      widgetAddChild(docsContainer, errText);
+      const errCard = makeCard([makeMuted('Error: ' + parsed.error, 13)], 4);
+      widgetAddChild(docsContainer, errCard);
       return;
     }
     docArray = parsed;
   } catch (e: any) {
-    const errText = Text('Parse error');
-    textSetColor(errText, erR, erG, erB, 1.0);
-    widgetAddChild(docsContainer, errText);
+    widgetAddChild(docsContainer, makeCard([makeMuted('Failed to parse response', 13)], 4));
     return;
   }
 
-  const countText = Text(`Found ${docArray.length} document(s)`);
-  textSetFontSize(countText, 14);
-  textSetFontWeight(countText, 14, 0.5);
-  textSetColor(countText, sgR, sgG, sgB, 1.0);
-  widgetAddChild(docsContainer, countText);
+  // Results header
+  const countLabel = Text(`${docArray.length} document${docArray.length === 1 ? '' : 's'}`);
+  textSetFontSize(countLabel, 13);
+  textSetFontWeight(countLabel, 13, 0.5);
+  textSetColor(countLabel, tsR, tsG, tsB, 1.0);
 
+  const headerRow = HStack(8, [
+    makeLabel(activeDbName + '.' + activeCollName, 14, true),
+    Spacer(),
+    countLabel,
+  ]);
+  widgetAddChild(docsContainer, headerRow);
+
+  if (docArray.length === 0) {
+    const emptyCard = makeCard([makeMuted('No documents match the query.', 13)], 4);
+    widgetAddChild(docsContainer, emptyCard);
+    return;
+  }
+
+  // Document cards
   for (let i = 0; i < docArray.length; i++) {
     const doc = docArray[i];
-    const docStr = JSON.stringify(doc, null, 2);
-    const docText = Text(docStr);
-    textSetFontSize(docText, 12);
-    textSetColor(docText, txR, txG, txB, 1.0);
-
-    // Pass the JSON string (not the object) to the edit view
     const docJsonStr = JSON.stringify(doc);
-    const editBtn = Button('Edit', () => {
-      showEditView(docJsonStr);
-    });
+    const idShort = extractIdShort(docJsonStr);
+    const fields = extractFields(docJsonStr);
+
+    const card = VStack(0, []);
+    widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
+    setCornerRadius(card, 10);
+    setPadding(card, 12, 16, 12, 16);
+
+    // Header: _id + edit button
+    const idLabel = makeMonoMuted(idShort, 10);
+
+    const editBtn = Button('Edit', () => { showEditView(docJsonStr); });
     buttonSetBordered(editBtn, 0);
     buttonSetTextColor(editBtn, moR, moG, moB, 1.0);
 
-    const headerRow = HStack(4, [Spacer(), editBtn]);
-    const docCard = VStack(4, [headerRow, docText]);
-    widgetSetBackgroundColor(docCard, sfR, sfG, sfB, 1.0);
-    setCornerRadius(docCard, 6);
-    setPadding(docCard, 8, 12, 8, 12);
-    widgetAddChild(docsContainer, docCard);
+    const docHeader = HStack(6, [idLabel, Spacer(), editBtn]);
+    widgetAddChild(card, docHeader);
+
+    // Field rows (skip _id)
+    for (let f = 0; f < fields.length; f++) {
+      const key = fields[f][0];
+      const val = fields[f][1];
+      if (key === '_id') continue;
+
+      const keyText = makeSecondary(key, 12);
+      const valText = makeMono(val, 12);
+
+      const fieldRow = HStack(8, [keyText, valText]);
+      widgetAddChild(card, fieldRow);
+    }
+
+    widgetAddChild(docsContainer, card);
   }
 }
 
-const queryBtn = Button('Query', async () => {
-  widgetClearChildren(docsContainer);
-  if (!currentDbName || !currentCollName) {
-    const errText = Text('Please enter both database and collection names.');
-    textSetColor(errText, erR, erG, erB, 1.0);
-    widgetAddChild(docsContainer, errText);
-    return;
-  }
-  if (!mongoClient) {
-    const errText = Text('Not connected to MongoDB.');
-    textSetColor(errText, erR, erG, erB, 1.0);
-    widgetAddChild(docsContainer, errText);
-    return;
-  }
+// Query bar elements (placed directly in browser VStack for full-width fields)
 
-  activeDbName = currentDbName;
-  activeCollName = currentCollName;
-  lastQueryFilter = currentFilter;
+// --- Browser screen layout ---
+const toolbarRow = HStack(8, [browserTitle, Spacer(), connDot, connLabel, disconnectBtn]);
 
-  const loadingText = Text(`Querying ${currentDbName}.${currentCollName}...`);
-  textSetFontSize(loadingText, 14);
-  textSetColor(loadingText, tsR, tsG, tsB, 1.0);
-  widgetAddChild(docsContainer, loadingText);
-
-  const result = await queryCollection(currentDbName, currentCollName, currentFilter);
-  displayDocs(result);
-});
-
-const dbLabel = Text('Database');
-textSetFontSize(dbLabel, 12);
-textSetColor(dbLabel, tsR, tsG, tsB, 1.0);
-
-const collLabel = Text('Collection');
-textSetFontSize(collLabel, 12);
-textSetColor(collLabel, tsR, tsG, tsB, 1.0);
-
-const filterLabel = Text('Filter');
-textSetFontSize(filterLabel, 12);
-textSetColor(filterLabel, tsR, tsG, tsB, 1.0);
-
-// Quick test button that queries mango_test.users directly
-const testBtn = Button('Test: mango_test.users', async () => {
-  widgetClearChildren(docsContainer);
-  if (!mongoClient) {
-    const errText = Text('Not connected. Click Connect first.');
-    textSetColor(errText, erR, erG, erB, 1.0);
-    widgetAddChild(docsContainer, errText);
-    return;
-  }
-
-  activeDbName = 'mango_test';
-  activeCollName = 'users';
-  lastQueryFilter = '{}';
-
-  const loadingText = Text('Querying mango_test.users...');
-  textSetFontSize(loadingText, 14);
-  textSetColor(loadingText, tsR, tsG, tsB, 1.0);
-  widgetAddChild(docsContainer, loadingText);
-
-  const result = await queryCollection('mango_test', 'users', '{}');
-  displayDocs(result);
-});
-
-const browserScreen = VStack(12, [
-  HStack(8, [browserTitle, Spacer(), disconnectBtn]),
+const browserScreen = VStack(8, [
+  toolbarRow,
   Divider(),
-  dbLabel,
+  makeSecondary('Database', 10),
   dbField,
-  collLabel,
+  makeSecondary('Collection', 10),
   collField,
-  filterLabel,
-  HStack(8, [filterField, queryBtn]),
-  testBtn,
+  makeSecondary('Filter', 10),
+  filterField,
+  HStack(8, [breadcrumb, Spacer(), queryBtn]),
   Divider(),
   docsScroll,
 ]);
 setPadding(browserScreen, 16, 24, 16, 24);
-widgetSetHidden(browserScreen, 1); // Start hidden
+widgetSetBackgroundColor(browserScreen, bgR, bgG, bgB, 1.0);
+widgetSetHidden(browserScreen, 1);
 
-// --- Screen switching via visibility ---
+// --- Screen switching ---
 function showScreen(idx: number): void {
   if (idx === 0) {
     widgetSetHidden(connectionScreen, 0);
@@ -594,10 +778,10 @@ function showScreen(idx: number): void {
   }
 }
 
-// --- Launch app ---
+// --- Launch ---
 App({
   title: 'Mango',
-  width: 900,
-  height: 700,
+  width: 1100,
+  height: 750,
   body: VStack(0, [connectionScreen, browserScreen]),
 });
