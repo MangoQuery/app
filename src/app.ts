@@ -1,11 +1,12 @@
 import {
   App, VStack, HStack, Text, Button, Spacer, Divider,
-  TextField, ScrollView,
+  TextField, ScrollView, ImageFile,
   textSetFontSize, textSetFontWeight, textSetColor, textSetString,
   textSetFontFamily,
   buttonSetBordered, buttonSetTextColor,
   widgetAddChild, widgetClearChildren, widgetSetHidden,
-  widgetSetBackgroundColor,
+  widgetSetBackgroundColor, widgetSetBackgroundGradient,
+  widgetMatchParentWidth, widgetSetHugging, widgetSetHeight, widgetSetWidth,
   setCornerRadius, setPadding,
   scrollviewSetChild,
   textfieldSetString, textfieldGetString,
@@ -13,63 +14,69 @@ import {
 import { isDarkMode } from 'perry/system';
 import { MongoClient } from 'mongodb';
 
-// --- Theme ---
+// --- Theme (matches brand: mangoquery.com) ---
 const dark = isDarkMode();
 
-// Backgrounds
-const bgR = dark ? 0.137 : 0.949;
-const bgG = dark ? 0.145 : 0.949;
-const bgB = dark ? 0.208 : 0.957;
+// Background: cream #FFF8F0 / charcoal #2B2D42
+const bgR = dark ? 0.169 : 1.0;
+const bgG = dark ? 0.176 : 0.973;
+const bgB = dark ? 0.259 : 0.941;
 
-const sfR = dark ? 0.192 : 1.0;
-const sfG = dark ? 0.200 : 1.0;
-const sfB = dark ? 0.278 : 1.0;
+// Surface: white #FFFFFF / dark surface #3A3D56
+const sfR = dark ? 0.227 : 1.0;
+const sfG = dark ? 0.239 : 1.0;
+const sfB = dark ? 0.337 : 1.0;
 
-// Sidebar / toolbar bg
-const tbR = dark ? 0.161 : 0.937;
-const tbG = dark ? 0.169 : 0.937;
-const tbB = dark ? 0.239 : 0.945;
+// Sidebar bg: warm #F5EDE3 / dark #232538
+const tbR = dark ? 0.137 : 0.961;
+const tbG = dark ? 0.145 : 0.929;
+const tbB = dark ? 0.220 : 0.890;
 
-// Text
-const txR = dark ? 0.910 : 0.133;
-const txG = dark ? 0.914 : 0.137;
-const txB = dark ? 0.929 : 0.192;
+// Text primary: charcoal #2B2D42 / light #E8E9ED
+const txR = dark ? 0.910 : 0.169;
+const txG = dark ? 0.914 : 0.176;
+const txB = dark ? 0.929 : 0.259;
 
+// Text secondary: #6B7194 / #8D99AE
 const tsR = dark ? 0.553 : 0.420;
 const tsG = dark ? 0.600 : 0.443;
-const tsB = dark ? 0.682 : 0.506;
+const tsB = dark ? 0.682 : 0.580;
 
+// Text muted: slate #8D99AE / #6B7194
 const tmR = dark ? 0.420 : 0.553;
 const tmG = dark ? 0.443 : 0.600;
-const tmB = dark ? 0.506 : 0.682;
+const tmB = dark ? 0.580 : 0.682;
 
-// Mango orange
+// Mango orange #FF9F1C
 const moR = 1.0;
 const moG = 0.624;
 const moB = 0.110;
 
-// Orange hover / light accent bg
-const oaBgR = dark ? 0.25 : 1.0;
-const oaBgG = dark ? 0.20 : 0.953;
-const oaBgB = dark ? 0.10 : 0.890;
+// Mango yellow #FFBF69 (secondary accent)
+const myR = 1.0;
+const myG = 0.749;
+const myB = 0.412;
 
-// Error red
+// Error / deep red #E8572A
 const erR = 0.910;
 const erG = 0.341;
 const erB = 0.165;
 
-// Success green
+// Success / tropical green #2EC4B6
 const sgR = 0.180;
 const sgG = 0.769;
 const sgB = 0.714;
 
-// Border
-const brR = dark ? 0.255 : 0.890;
-const brG = dark ? 0.263 : 0.894;
-const brB = dark ? 0.353 : 0.910;
+// Border: #E8E9ED / #4A4D6A
+const brR = dark ? 0.290 : 0.910;
+const brG = dark ? 0.302 : 0.914;
+const brB = dark ? 0.416 : 0.929;
 
 // Monospace font
 const monoFont = 'Menlo';
+
+// UI font — Rubik matches the brand, SF Pro Display as fallback
+const uiFont = 'Rubik';
 
 // --- State ---
 let connectionNames: string[] = [];
@@ -102,6 +109,7 @@ let editDocJson = '';
 function makeLabel(text: string, size: number, bold: boolean): any {
   const t = Text(text);
   textSetFontSize(t, size);
+  textSetFontFamily(t, uiFont);
   if (bold) textSetFontWeight(t, size, 0.5);
   textSetColor(t, txR, txG, txB, 1.0);
   return t;
@@ -110,6 +118,7 @@ function makeLabel(text: string, size: number, bold: boolean): any {
 function makeMuted(text: string, size: number): any {
   const t = Text(text);
   textSetFontSize(t, size);
+  textSetFontFamily(t, uiFont);
   textSetColor(t, tmR, tmG, tmB, 1.0);
   return t;
 }
@@ -117,6 +126,7 @@ function makeMuted(text: string, size: number): any {
 function makeSecondary(text: string, size: number): any {
   const t = Text(text);
   textSetFontSize(t, size);
+  textSetFontFamily(t, uiFont);
   textSetColor(t, tsR, tsG, tsB, 1.0);
   return t;
 }
@@ -345,6 +355,7 @@ function removeIdFromJson(docJson: string): string {
 // --- Status ---
 const statusText = Text('');
 textSetFontSize(statusText, 12);
+textSetFontFamily(statusText, uiFont);
 widgetSetHidden(statusText, 1);
 
 function showStatus(msg: string, isError: boolean): void {
@@ -363,26 +374,65 @@ function refreshConnectionList(): void {
   widgetClearChildren(connListContainer);
 
   if (connectionNames.length === 0) {
-    // Empty state
-    const emptyCard = VStack(8, []);
-    widgetSetBackgroundColor(emptyCard, sfR, sfG, sfB, 1.0);
-    setCornerRadius(emptyCard, 12);
-    setPadding(emptyCard, 32, 24, 32, 24);
+    // Welcome card with warm styling
+    const welcomeCard = VStack(16, []);
+    widgetSetBackgroundColor(welcomeCard, sfR, sfG, sfB, 1.0);
+    setCornerRadius(welcomeCard, 14);
+    setPadding(welcomeCard, 32, 36, 28, 36);
 
-    const emptyIcon = Text('No connections yet');
-    textSetFontSize(emptyIcon, 16);
-    textSetFontWeight(emptyIcon, 16, 0.5);
-    textSetColor(emptyIcon, txR, txG, txB, 1.0);
+    const welcomeIcon = ImageFile('logo/mango-app-icon-128.png');
+    widgetSetWidth(welcomeIcon, 48);
+    widgetSetHeight(welcomeIcon, 48);
 
-    const emptyHint = Text('Click "+ New Connection" to add your first MongoDB server.');
-    textSetFontSize(emptyHint, 13);
-    textSetColor(emptyHint, tmR, tmG, tmB, 1.0);
+    const welcomeTitle = Text('Welcome to Mango');
+    textSetFontSize(welcomeTitle, 24);
+    textSetFontFamily(welcomeTitle, uiFont);
+    textSetFontWeight(welcomeTitle, 24, 0.5);
+    textSetColor(welcomeTitle, txR, txG, txB, 1.0);
 
-    widgetAddChild(emptyCard, emptyIcon);
-    widgetAddChild(emptyCard, emptyHint);
-    widgetAddChild(connListContainer, emptyCard);
+    const welcomeHint = Text('Connect to your MongoDB instance to browse databases, query collections, and manage documents.');
+    textSetFontSize(welcomeHint, 14);
+    textSetFontFamily(welcomeHint, uiFont);
+    textSetColor(welcomeHint, tmR, tmG, tmB, 1.0);
+
+    // Feature pills with orange accent
+    function makePill(label: string): any {
+      const pillLabel = Text(label);
+      textSetFontSize(pillLabel, 12);
+      textSetFontFamily(pillLabel, uiFont);
+      textSetFontWeight(pillLabel, 12, 0.4);
+      textSetColor(pillLabel, moR, moG, moB, 1.0);
+
+      const pill = VStack(0, [pillLabel]);
+      widgetSetBackgroundColor(pill, dark ? 0.2 : 1.0, dark ? 0.15 : 0.96, dark ? 0.1 : 0.92, 1.0);
+      setCornerRadius(pill, 8);
+      setPadding(pill, 6, 14, 6, 14);
+      return pill;
+    }
+
+    const pillRow1 = HStack(8, [makePill('Databases & Collections'), makePill('Query & Filter')]);
+    const pillRow2 = HStack(8, [makePill('Edit & Insert'), makePill('Index Viewer')]);
+    const pillGrid = VStack(8, [pillRow1, pillRow2]);
+
+    const ctaBtn = Button('+ New Connection', () => { showConnectionForm(); });
+    buttonSetTextColor(ctaBtn, 1.0, 1.0, 1.0, 1.0);
+    widgetSetBackgroundColor(ctaBtn, moR, moG, moB, 1.0);
+    setCornerRadius(ctaBtn, 8);
+    setPadding(ctaBtn, 10, 20, 10, 20);
+
+    widgetAddChild(welcomeCard, welcomeIcon);
+    widgetAddChild(welcomeCard, welcomeTitle);
+    widgetAddChild(welcomeCard, welcomeHint);
+    widgetAddChild(welcomeCard, pillGrid);
+    widgetAddChild(welcomeCard, ctaBtn);
+
+    widgetAddChild(connListContainer, welcomeCard);
     return;
   }
+
+  // Section header
+  const sectionTitle = makeLabel('Your Connections', 16, true);
+  widgetAddChild(connListContainer, sectionTitle);
 
   for (let i = 0; i < connectionNames.length; i++) {
     const connIdx = i;
@@ -511,36 +561,61 @@ function showConnectionForm(): void {
 // Build connection screen
 refreshConnectionList();
 
-const connScroll = ScrollView();
-const connScrollInner = VStack(10, [connListContainer, formContainer]);
-scrollviewSetChild(connScroll, connScrollInner);
-
 const addBtn = Button('+ New Connection', () => { showConnectionForm(); });
+buttonSetTextColor(addBtn, moR, moG, moB, 1.0);
 
-const connTitle = Text('Mango');
-textSetFontSize(connTitle, 28);
-textSetFontWeight(connTitle, 28, 0.7);
-textSetColor(connTitle, moR, moG, moB, 1.0);
+// --- Hero header with warm gradient ---
+const heroBox = VStack(10, []);
+// Warm orange-to-yellow gradient (horizontal)
+widgetSetBackgroundGradient(heroBox, moR, moG, moB, 1.0, myR, myG, myB, 1.0, 1);
+setPadding(heroBox, 44, 60, 36, 60);
 
-const connSubtitle = makeSecondary('MongoDB GUI', 13);
+// Logo + title row
+const heroLogo = ImageFile('logo/mango-app-icon-128.png');
+widgetSetWidth(heroLogo, 56);
+widgetSetHeight(heroLogo, 56);
 
-const connectionScreen = VStack(0, [
-  // Header
-  VStack(16, [
-    HStack(8, [VStack(2, [connTitle, connSubtitle]), Spacer(), addBtn]),
-    statusText,
-  ]),
-  Divider(),
-  connScroll,
+const heroTitle = Text('Mango');
+textSetFontSize(heroTitle, 38);
+textSetFontFamily(heroTitle, uiFont);
+textSetFontWeight(heroTitle, 38, 0.7);
+textSetColor(heroTitle, 1.0, 1.0, 1.0, 1.0);
+
+const heroTitleRow = HStack(14, [heroLogo, heroTitle]);
+
+const heroSubtitle = Text('MongoDB, finally fast.');
+textSetFontSize(heroSubtitle, 16);
+textSetFontFamily(heroSubtitle, uiFont);
+textSetColor(heroSubtitle, 1.0, 1.0, 1.0, 0.85);
+
+widgetAddChild(heroBox, heroTitleRow);
+widgetAddChild(heroBox, heroSubtitle);
+
+// --- Body content below hero ---
+const connBody = VStack(16, [
+  HStack(8, [statusText, Spacer(), addBtn]),
+  connListContainer,
+  formContainer,
 ]);
-setPadding(connectionScreen, 24, 32, 24, 32);
+setPadding(connBody, 28, 60, 32, 60);
+
+// All content in the document VStack
+const connContent = VStack(0, [
+  heroBox,
+  connBody,
+]);
+
+// ScrollView: cream bg, natural element heights, full-width children
+const connectionScreen = ScrollView();
+scrollviewSetChild(connectionScreen, connContent);
 widgetSetBackgroundColor(connectionScreen, bgR, bgG, bgB, 1.0);
 
 // ============================================================
 //  BROWSER SCREEN
 // ============================================================
 
-const docsContainer = VStack(8, []);
+const docsContainer = VStack(10, []);
+setPadding(docsContainer, 4, 0, 16, 0);
 const docsScroll = ScrollView();
 scrollviewSetChild(docsScroll, docsContainer);
 
@@ -551,12 +626,9 @@ widgetAddChild(docsContainer, docInfoText);
 // --- Toolbar ---
 const connLabel = Text('Connected');
 textSetFontSize(connLabel, 11);
+textSetFontFamily(connLabel, uiFont);
 textSetFontWeight(connLabel, 11, 0.5);
 textSetColor(connLabel, sgR, sgG, sgB, 1.0);
-
-const connDot = Text('  ');
-textSetFontSize(connDot, 11);
-textSetColor(connDot, sgR, sgG, sgB, 1.0);
 
 const disconnectBtn = makeDangerBtn('Disconnect', async () => {
   if (mongoClient) {
@@ -566,9 +638,15 @@ const disconnectBtn = makeDangerBtn('Disconnect', async () => {
   showScreen(0);
 });
 
+// Browser toolbar — logo + connection name + status
+const browserLogo = ImageFile('logo/mango-app-icon-128.png');
+widgetSetWidth(browserLogo, 24);
+widgetSetHeight(browserLogo, 24);
+
 const browserTitle = Text('Mango');
-textSetFontSize(browserTitle, 20);
-textSetFontWeight(browserTitle, 20, 0.7);
+textSetFontSize(browserTitle, 18);
+textSetFontFamily(browserTitle, uiFont);
+textSetFontWeight(browserTitle, 18, 0.7);
 textSetColor(browserTitle, moR, moG, moB, 1.0);
 
 // --- Query bar ---
@@ -579,6 +657,7 @@ const filterField = TextField('filter: {}', (val: string) => { currentFilter = v
 // Context breadcrumb
 const breadcrumb = Text('');
 textSetFontSize(breadcrumb, 12);
+textSetFontFamily(breadcrumb, uiFont);
 textSetFontWeight(breadcrumb, 12, 0.5);
 textSetColor(breadcrumb, moR, moG, moB, 1.0);
 widgetSetHidden(breadcrumb, 1);
@@ -690,6 +769,7 @@ function displayDocs(jsonStr: string): void {
   // Results header
   const countLabel = Text(`${docArray.length} document${docArray.length === 1 ? '' : 's'}`);
   textSetFontSize(countLabel, 13);
+  textSetFontFamily(countLabel, uiFont);
   textSetFontWeight(countLabel, 13, 0.5);
   textSetColor(countLabel, tsR, tsG, tsB, 1.0);
 
@@ -745,25 +825,41 @@ function displayDocs(jsonStr: string): void {
   }
 }
 
-// Query bar elements (placed directly in browser VStack for full-width fields)
-
 // --- Browser screen layout ---
-const toolbarRow = HStack(8, [browserTitle, Spacer(), connDot, connLabel, disconnectBtn]);
 
-const browserScreen = VStack(8, [
-  toolbarRow,
+// Branded toolbar
+const toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
+const toolbarBox = VStack(0, [toolbarRow]);
+setPadding(toolbarBox, 12, 24, 12, 24);
+widgetSetBackgroundColor(toolbarBox, sfR, sfG, sfB, 1.0);
+
+// Query card
+const queryCard = VStack(8, []);
+widgetSetBackgroundColor(queryCard, sfR, sfG, sfB, 1.0);
+setCornerRadius(queryCard, 12);
+setPadding(queryCard, 16, 20, 16, 20);
+
+const queryTitle = makeLabel('Query', 14, true);
+
+// Inline target: db.collection
+const dbColRow = HStack(8, [dbField, makeSecondary('.', 13), collField]);
+
+widgetAddChild(queryCard, queryTitle);
+widgetAddChild(queryCard, makeSecondary('Database . Collection', 10));
+widgetAddChild(queryCard, dbColRow);
+widgetAddChild(queryCard, makeSecondary('Filter', 10));
+widgetAddChild(queryCard, filterField);
+widgetAddChild(queryCard, HStack(8, [breadcrumb, Spacer(), queryBtn]));
+
+// Main browser body with query + results
+const browserBody = VStack(16, [queryCard, docsScroll]);
+setPadding(browserBody, 20, 24, 16, 24);
+
+const browserScreen = VStack(0, [
+  toolbarBox,
   Divider(),
-  makeSecondary('Database', 10),
-  dbField,
-  makeSecondary('Collection', 10),
-  collField,
-  makeSecondary('Filter', 10),
-  filterField,
-  HStack(8, [breadcrumb, Spacer(), queryBtn]),
-  Divider(),
-  docsScroll,
+  browserBody,
 ]);
-setPadding(browserScreen, 16, 24, 16, 24);
 widgetSetBackgroundColor(browserScreen, bgR, bgG, bgB, 1.0);
 widgetSetHidden(browserScreen, 1);
 
@@ -779,9 +875,16 @@ function showScreen(idx: number): void {
 }
 
 // --- Launch ---
+const appBody = VStack(0, [connectionScreen, browserScreen]);
+widgetSetBackgroundColor(appBody, bgR, bgG, bgB, 1.0);
+
+// Force screens to fill full window width
+widgetMatchParentWidth(connectionScreen);
+widgetMatchParentWidth(browserScreen);
+
 App({
   title: 'Mango',
   width: 1100,
   height: 750,
-  body: VStack(0, [connectionScreen, browserScreen]),
+  body: appBody,
 });
