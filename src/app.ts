@@ -483,14 +483,39 @@ function refreshConnectionList(): void {
       }
     });
 
-    const deleteBtn = makeDangerBtn('Remove', () => {
-      keychainDelete('mango-conn-' + connectionIds[connIdx]);
-      deleteConnection(connectionIds[connIdx]);
+    const connId = connectionIds[i];
+    const confirmLabel = Text('');
+    textSetFontSize(confirmLabel, 11);
+    textSetFontFamily(confirmLabel, uiFont);
+    textSetColor(confirmLabel, erR, erG, erB, 1.0);
+    widgetSetHidden(confirmLabel, 1);
+
+    const confirmYes = Button('Yes, delete', () => {
+      deleteConnection(connId);
       loadConnections();
       refreshConnectionList();
     });
+    buttonSetBordered(confirmYes, 0);
+    buttonSetTextColor(confirmYes, erR, erG, erB, 1.0);
+    widgetSetHidden(confirmYes, 1);
 
-    const row = HStack(12, [accentBar, info, Spacer(), deleteBtn, connectBtn]);
+    const confirmNo = Button('Cancel', () => {
+      widgetSetHidden(confirmLabel, 1);
+      widgetSetHidden(confirmYes, 1);
+      widgetSetHidden(confirmNo, 1);
+    });
+    buttonSetBordered(confirmNo, 0);
+    buttonSetTextColor(confirmNo, tsR, tsG, tsB, 1.0);
+    widgetSetHidden(confirmNo, 1);
+
+    const deleteBtn = makeDangerBtn('Remove', () => {
+      textSetString(confirmLabel, 'Remove this connection?');
+      widgetSetHidden(confirmLabel, 0);
+      widgetSetHidden(confirmYes, 0);
+      widgetSetHidden(confirmNo, 0);
+    });
+
+    const row = HStack(12, [accentBar, info, Spacer(), confirmLabel, confirmYes, confirmNo, deleteBtn, connectBtn]);
     const card = VStack(0, [row]);
     widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
     setCornerRadius(card, 10);
@@ -499,6 +524,11 @@ function refreshConnectionList(): void {
     widgetAddChild(connListContainer, card);
     widgetMatchParentWidth(card);
   }
+
+  // Add new connection button
+  const addMoreBtn = Button('+ New Connection', () => { showConnectionForm(); });
+  buttonSetTextColor(addMoreBtn, moR, moG, moB, 1.0);
+  widgetAddChild(connListContainer, addMoreBtn);
 }
 
 // --- Connection form ---
@@ -534,18 +564,7 @@ function showConnectionForm(): void {
   const saveBtn = Button('Save Connection', () => {
     const name = formName || 'Untitled';
     const host = formHost;
-    const port = parseInt(formPort) || 27017;
-    const uri = formUri;
-    const profile = createConnection({
-      name,
-      host,
-      port,
-      useConnectionString: uri.length > 0,
-    });
-    // Store URI securely in platform keychain (macOS Keychain, Windows Credential Manager, etc.)
-    if (uri) {
-      keychainSave('mango-conn-' + profile.id, uri);
-    }
+    createConnection({ name: name, host: host });
     loadConnections();
     formName = '';
     formHost = 'localhost';
