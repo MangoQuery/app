@@ -83,10 +83,10 @@ export class ConnectionStore {
 
   private rowToProfile(row: any): ConnectionProfile {
     return {
-      id: row.id as string,
-      name: row.name as string,
-      host: row.host as string,
-      port: row.port as number,
+      id: (row.id || '') as string,
+      name: (row.name || 'Untitled') as string,
+      host: (row.host || 'localhost') as string,
+      port: (row.port || 27017) as number,
       useConnectionString: (row.use_connection_string as number) === 1,
       connectionString: (row.connection_string || '') as string,
       authEnabled: (row.auth_enabled as number) === 1,
@@ -225,7 +225,12 @@ export class ConnectionStore {
     }
 
     if (params.length > 0) {
-      uri += (uri.includes('/') ? '?' : '?') + params.join('&');
+      // Ensure there's a path separator before query params
+      const hostPortEnd = uri.indexOf('/', uri.indexOf('://') + 3);
+      if (hostPortEnd < 0) {
+        uri += '/';
+      }
+      uri += '?' + params.join('&');
     }
 
     return uri;

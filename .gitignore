@@ -1,5 +1,6 @@
 # Perry build outputs
 dist/
+target/
 *.o
 _perry_failed_stubs.o
 

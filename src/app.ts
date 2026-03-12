@@ -76,8 +76,8 @@ const brR = dark ? 0.290 : 0.910;
 const brG = dark ? 0.302 : 0.914;
 const brB = dark ? 0.416 : 0.929;
 
-// Monospace font
-const monoFont = 'Menlo';
+// Monospace font — platform-specific (JetBrains Mono on Linux, SF Mono on macOS, Menlo fallback)
+const monoFont = 'JetBrains Mono';
 
 // UI font — Rubik matches the brand, SF Pro Display as fallback
 const uiFont = 'Rubik';
@@ -91,7 +91,13 @@ let connectionUris: string[] = [];
 
 // Load saved connections from SQLite + Keychain
 function loadConnections(): void {
-  const profiles = getAllConnections();
+  let profiles: any[] = [];
+  try {
+    const result = getAllConnections();
+    if (Array.isArray(result)) profiles = result;
+  } catch (e: any) {
+    // Database may not be available
+  }
   connectionIds = [];
   connectionNames = [];
   connectionHosts = [];
@@ -99,13 +105,15 @@ function loadConnections(): void {
   connectionUris = [];
   for (let i = 0; i < profiles.length; i++) {
     const p: any = profiles[i];
+    if (!p || !p.id) continue; // Skip invalid entries
     connectionIds.push(p.id);
-    connectionNames.push(p.name);
-    connectionHosts.push(p.host);
-    connectionPorts.push(String(p.port));
+    connectionNames.push(p.name || 'Untitled');
+    connectionHosts.push(p.host || 'localhost');
+    connectionPorts.push(String(p.port || 27017));
     // Connection URI stored securely in Keychain
-    const uri = keychainGet('mango-conn-' + p.id);
-    connectionUris.push(typeof uri === 'string' ? uri : '');
+    let uri = '';
+    try { const k = keychainGet('mango-conn-' + p.id); if (typeof k === 'string') uri = k; } catch (e: any) {}
+    connectionUris.push(uri);
   }
 }
 loadConnections();
@@ -412,7 +420,7 @@ async function listDatabases(): Promise<string[]> {
     const result = await mongoClient.listDatabases();
     if (typeof result === 'string') {
       const parsed = JSON.parse(result);
-      return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
     return [];
   } catch (e: any) {
@@ -428,7 +436,7 @@ async function listCollections(dbName: string): Promise<string[]> {
     const result = await db.listCollections();
     if (typeof result === 'string') {
       const parsed = JSON.parse(result);
-      return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
     return [];
   } catch (e: any) {
@@ -701,19 +709,27 @@ function showConnectionForm(): void {
       }
     }
 
-    // Extract host from URI for display in connection list
+    // Extract host (without port) from URI for display in connection list
     let displayHost = host;
+    let displayPort = port;
     const schemeIdx = uri.indexOf('://');
     if (schemeIdx >= 0) {
       const afterScheme = uri.substring(schemeIdx + 3);
       const atIdx = afterScheme.indexOf('@');
       const hostPart = atIdx >= 0 ? afterScheme.substring(atIdx + 1) : afterScheme;
       const slashIdx = hostPart.indexOf('/');
-      displayHost = slashIdx >= 0 ? hostPart.substring(0, slashIdx) : hostPart;
+      const hostPortStr = slashIdx >= 0 ? hostPart.substring(0, slashIdx) : hostPart;
+      const colonIdx = hostPortStr.lastIndexOf(':');
+      if (colonIdx >= 0) {
+        displayHost = hostPortStr.substring(0, colonIdx);
+        displayPort = hostPortStr.substring(colonIdx + 1);
+      } else {
+        displayHost = hostPortStr;
+      }
     }
 
     // Create the connection profile in SQLite
-    const profile: any = createConnection({ name: name, host: displayHost });
+    const profile: any = createConnection({ name: name, host: displayHost, port: parseInt(displayPort) || 27017 });
     // Store URI securely in keychain
     keychainSave('mango-conn-' + profile.id, uri);
 
