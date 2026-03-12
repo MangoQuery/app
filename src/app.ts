@@ -18,6 +18,10 @@ import { MongoClient } from 'mongodb';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
 import { getAllConnections, createConnection, deleteConnection, saveState, getState } from './data/connection-store';
 
+// --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android) ---
+declare const __platform__: number;
+const mobile = __platform__ === 1 || __platform__ === 2;
+
 // --- Theme (matches brand: mangoquery.com) ---
 const dark = isDarkMode();
 
@@ -76,11 +80,11 @@ const brR = dark ? 0.290 : 0.910;
 const brG = dark ? 0.302 : 0.914;
 const brB = dark ? 0.416 : 0.929;
 
-// Monospace font — platform-specific (JetBrains Mono on Linux, SF Mono on macOS, Menlo fallback)
-const monoFont = 'JetBrains Mono';
+// Monospace font — platform-specific
+const monoFont = mobile ? 'monospace' : 'JetBrains Mono';
 
-// UI font — Rubik matches the brand, SF Pro Display as fallback
-const uiFont = 'Rubik';
+// UI font — Rubik on macOS, system font on iOS
+const uiFont = mobile ? '.AppleSystemUIFont' : 'Rubik';
 
 // --- State ---
 let connectionIds: string[] = [];
@@ -89,7 +93,7 @@ let connectionHosts: string[] = [];
 let connectionPorts: string[] = [];
 let connectionUris: string[] = [];
 
-// Load saved connections from SQLite + Keychain
+// Load saved connections from SQLite (URI in connection_string column, Keychain as fallback)
 function loadConnections(): void {
   let profiles: any[] = [];
   try {
@@ -110,9 +114,11 @@ function loadConnections(): void {
     connectionNames.push(p.name || 'Untitled');
     connectionHosts.push(p.host || 'localhost');
     connectionPorts.push(String(p.port || 27017));
-    // Connection URI stored securely in Keychain
-    let uri = '';
-    try { const k = keychainGet('mango-conn-' + p.id); if (typeof k === 'string') uri = k; } catch (e: any) {}
+    // URI from SQLite, fall back to Keychain for backward compat
+    let uri = p.connectionString || '';
+    if (!uri) {
+      try { const k = keychainGet('mango-conn-' + p.id); if (typeof k === 'string') uri = k; } catch (e: any) {}
+    }
     connectionUris.push(uri);
   }
 }
@@ -382,7 +388,8 @@ async function connectToMongo(uri: string): Promise<boolean> {
     lastConnError = 'Connected but could not list databases';
     return false;
   } catch (e: any) {
-    lastConnError = e.message || 'Connection failed';
+    const msg = (e as any).message || e;
+    lastConnError = typeof msg === 'string' ? msg : 'Connection failed';
     return false;
   }
 }
@@ -508,7 +515,6 @@ function showStatus(msg: string, isError: boolean): void {
 // ============================================================
 
 const connListContainer = VStack(10, []);
-
 function refreshConnectionList(): void {
   widgetClearChildren(connListContainer);
 
@@ -517,7 +523,7 @@ function refreshConnectionList(): void {
     const welcomeCard = VStack(16, []);
     widgetSetBackgroundColor(welcomeCard, sfR, sfG, sfB, 1.0);
     setCornerRadius(welcomeCard, 14);
-    setPadding(welcomeCard, 32, 36, 28, 36);
+    setPadding(welcomeCard, mobile ? 20 : 32, mobile ? 16 : 36, mobile ? 16 : 28, mobile ? 16 : 36);
 
     const welcomeTitle = Text('Welcome to Mango');
     textSetFontSize(welcomeTitle, 24);
@@ -553,7 +559,7 @@ function refreshConnectionList(): void {
     buttonSetTextColor(ctaBtn, 1.0, 1.0, 1.0, 1.0);
     widgetSetBackgroundColor(ctaBtn, moR, moG, moB, 1.0);
     setCornerRadius(ctaBtn, 8);
-    setPadding(ctaBtn, 10, 20, 10, 20);
+    setPadding(ctaBtn, 12, 20, 12, 20);
 
     widgetAddChild(welcomeCard, welcomeTitle);
     widgetAddChild(welcomeCard, welcomeHint);
@@ -601,6 +607,8 @@ function refreshConnectionList(): void {
         saveState('lastConnName', currentConnName);
         showScreen(1);
         await loadDatabases();
+        // On mobile, auto-show sidebar after connecting so user sees databases
+        if (mobile && !sidebarVisible) { showSidebar(); }
       } else {
         showStatus('Connection failed: ' + lastConnError, true);
       }
@@ -638,8 +646,16 @@ function refreshConnectionList(): void {
       widgetSetHidden(confirmNo, 0);
     });
 
-    const row = HStack(12, [accentBar, info, Spacer(), confirmLabel, confirmYes, confirmNo, deleteBtn, connectBtn]);
-    const card = VStack(0, [row]);
+    let card: any;
+    if (mobile) {
+      // Mobile: stack vertically — info on top, buttons below
+      const btnRow = HStack(8, [deleteBtn, Spacer(), connectBtn]);
+      const confirmRow = HStack(8, [confirmLabel, confirmYes, confirmNo]);
+      card = VStack(10, [info, confirmRow, btnRow]);
+    } else {
+      const row = HStack(12, [accentBar, info, Spacer(), confirmLabel, confirmYes, confirmNo, deleteBtn, connectBtn]);
+      card = VStack(0, [row]);
+    }
     widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
     setCornerRadius(card, 10);
     setPadding(card, 12, 16, 12, 16);
@@ -728,9 +744,9 @@ function showConnectionForm(): void {
       }
     }
 
-    // Create the connection profile in SQLite
-    const profile: any = createConnection({ name: name, host: displayHost, port: parseInt(displayPort) || 27017 });
-    // Store URI securely in keychain
+    // Create the connection profile in SQLite (URI stored in connection_string column)
+    const profile: any = createConnection({ name: name, host: displayHost, port: parseInt(displayPort) || 27017, connectionString: uri });
+    // Also try Keychain as backup (may fail on iOS simulator without entitlements)
     keychainSave('mango-conn-' + profile.id, uri);
 
     formName = '';
@@ -776,26 +792,31 @@ refreshConnectionList();
 
 // --- Hero banner (full-width via ScrollView Width alignment) ---
 const heroLogo = ImageFile('logo/mango-app-icon-128.png');
-widgetSetWidth(heroLogo, 56);
-widgetSetHeight(heroLogo, 56);
+widgetSetWidth(heroLogo, mobile ? 40 : 56);
+widgetSetHeight(heroLogo, mobile ? 40 : 56);
 
 const heroTitle = Text('Mango');
-textSetFontSize(heroTitle, 38);
+textSetFontSize(heroTitle, mobile ? 28 : 38);
 textSetFontFamily(heroTitle, uiFont);
-textSetFontWeight(heroTitle, 38, 0.7);
-textSetColor(heroTitle, 1.0, 1.0, 1.0, 1.0);
+textSetFontWeight(heroTitle, mobile ? 28 : 38, 0.7);
+textSetColor(heroTitle, 1.0, 1.0, 1.0, 1.0); // white on gradient bg
 
 const heroSubtitle = Text('MongoDB, finally fast.');
-textSetFontSize(heroSubtitle, 16);
+textSetFontSize(heroSubtitle, mobile ? 14 : 16);
 textSetFontFamily(heroSubtitle, uiFont);
-textSetColor(heroSubtitle, 1.0, 1.0, 1.0, 0.85);
+textSetColor(heroSubtitle, 1.0, 1.0, 1.0, 0.85); // white on gradient bg
 
+const heroRow = HStack(14, [heroLogo, heroTitle]);
 const heroBox = VStack(8, [
-  HStack(14, [heroLogo, heroTitle]),
+  heroRow,
   heroSubtitle,
 ]);
 widgetSetBackgroundGradient(heroBox, moR, moG, moB, 1.0, myR, myG, myB, 1.0, 1);
-setPadding(heroBox, 44, 380, 36, 380); // symmetric padding centers ~340px content in 1100px window
+if (mobile) {
+  setPadding(heroBox, 60, 24, 28, 24); // top padding for status bar safe area
+} else {
+  setPadding(heroBox, 44, 380, 36, 380); // symmetric padding centers ~340px content in 1100px window
+}
 
 // --- Body content below hero ---
 const connBody = VStack(16, [
@@ -803,7 +824,7 @@ const connBody = VStack(16, [
   connListContainer,
   formContainer,
 ]);
-setPadding(connBody, 28, 60, 32, 60);
+setPadding(connBody, mobile ? 20 : 28, mobile ? 16 : 60, 32, mobile ? 16 : 60);
 
 // Force containers to fill width (must be after connBody creation so parent exists)
 widgetMatchParentWidth(connListContainer);
@@ -834,7 +855,7 @@ widgetSetHugging(docsScroll, 1); // expand to fill
 
 // Edit container: lives OUTSIDE browserBody to avoid .fill distribution stretching
 const editContainer = VStack(16, []);
-setPadding(editContainer, 20, 24, 16, 24);
+setPadding(editContainer, mobile ? 12 : 20, mobile ? 10 : 24, 16, mobile ? 10 : 24);
 stackSetDistribution(editContainer, 0); // .fill so Spacer absorbs remaining height
 widgetSetHidden(editContainer, 1);
 
@@ -1129,7 +1150,9 @@ setPadding(sidebarContainer, 8, 8, 8, 8);
 const sidebarScroll = ScrollView();
 scrollviewSetChild(sidebarScroll, sidebarContainer);
 widgetSetBackgroundColor(sidebarScroll, tbR, tbG, tbB, 1.0);
-widgetSetWidth(sidebarScroll, 240);
+if (!mobile) widgetSetWidth(sidebarScroll, 240);
+if (mobile) widgetSetHidden(sidebarScroll, 1);
+let sidebarVisible = !mobile;
 
 async function loadDatabases(): Promise<void> {
   // Show loading in sidebar
@@ -1255,6 +1278,8 @@ function renderSidebar(): void {
             saveState('lastColl', collName);
             textfieldSetString(dbField, dbName);
             textfieldSetString(collField, collName);
+            // On mobile, close sidebar and show main content
+            if (mobile) { hideSidebar(); }
             showStatus('Loading ' + dbName + '.' + collName + '...', false);
             await runQuery(dbName, collName, '{}');
             widgetSetHidden(statusText, 1);
@@ -1281,10 +1306,40 @@ function renderSidebar(): void {
 
 // --- Browser screen layout ---
 
-// Branded toolbar
-const toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
+// Sidebar toggle for mobile
+function showSidebar(): void {
+  sidebarVisible = true;
+  widgetSetHidden(sidebarScroll, 0);
+  if (mobile) {
+    widgetSetHidden(browserBody, 1);
+    widgetSetHidden(editContainer, 1);
+    widgetSetHugging(sidebarScroll, 1); // expand to fill on mobile
+  }
+}
+function hideSidebar(): void {
+  sidebarVisible = false;
+  widgetSetHidden(sidebarScroll, 1);
+  if (mobile) {
+    widgetSetHidden(browserBody, 0);
+    widgetSetHugging(sidebarScroll, 750); // restore compact
+  }
+}
+const sidebarToggle = Button('Explorer', () => {
+  if (sidebarVisible) { hideSidebar(); } else { showSidebar(); }
+});
+buttonSetBordered(sidebarToggle, 0);
+buttonSetTextColor(sidebarToggle, moR, moG, moB, 1.0);
+if (!mobile) widgetSetHidden(sidebarToggle, 1);
+
+// Branded toolbar — must use inline array literals (Perry codegen doesn't support variable arrays)
+let toolbarRow: any;
+if (mobile) {
+  toolbarRow = HStack(10, [sidebarToggle, Spacer(), connLabel, disconnectBtn]);
+} else {
+  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
+}
 const toolbarBox = VStack(0, [toolbarRow]);
-setPadding(toolbarBox, 12, 24, 12, 24);
+setPadding(toolbarBox, mobile ? 52 : 12, mobile ? 16 : 24, 12, mobile ? 16 : 24); // iOS top safe area
 widgetSetBackgroundColor(toolbarBox, sfR, sfG, sfB, 1.0);
 
 // Query card
@@ -1295,11 +1350,16 @@ setPadding(queryCard, 16, 20, 16, 20);
 
 const queryTitle = makeLabel('Query', 14, true);
 
-// Inline target: db.collection — give both fields explicit widths
+// Inline target: db.collection
 const dotSep = makeSecondary('.', 13);
-const dbColRow = HStack(4, [dbField, dotSep, collField]);
-widgetSetWidth(dbField, 250);
-widgetSetWidth(collField, 250);
+let dbColRow: any;
+if (mobile) {
+  dbColRow = VStack(6, [dbField, collField]);
+} else {
+  dbColRow = HStack(4, [dbField, dotSep, collField]);
+  widgetSetWidth(dbField, 250);
+  widgetSetWidth(collField, 250);
+}
 
 widgetAddChild(queryCard, queryTitle);
 widgetAddChild(queryCard, makeSecondary('Database . Collection', 10));
@@ -1310,13 +1370,14 @@ widgetAddChild(queryCard, HStack(8, [breadcrumb, Spacer(), queryBtn]));
 
 // Main browser body with query + results
 const browserBody = VStack(16, [queryCard, docsScroll]);
-setPadding(browserBody, 20, 24, 16, 24);
+setPadding(browserBody, mobile ? 12 : 20, mobile ? 10 : 24, 16, mobile ? 10 : 24);
 stackSetDistribution(browserBody, 0);   // .fill — docsScroll fills remaining height
 widgetSetHugging(queryCard, 750);        // query card stays compact
 
 // Sidebar + main content layout (editContainer is sibling of browserBody, toggled on edit)
 const browserContent = HStack(0, [sidebarScroll, browserBody, editContainer]);
 stackSetDistribution(browserContent, 0); // .fill
+stackSetAlignment(browserContent, 0);    // .fill cross-axis — children fill height (iOS HStack defaults to center)
 widgetSetHugging(sidebarScroll, 750); // sidebar stays fixed
 widgetSetHugging(browserBody, 1);     // body expands to fill
 widgetSetHugging(editContainer, 1);   // edit panel expands to fill when visible
@@ -1365,6 +1426,8 @@ async function restoreLastSession(): Promise<void> {
   textSetString(connLabel, currentConnName);
   showScreen(1);
   await loadDatabases();
+  // On mobile, auto-show sidebar so user sees databases
+  if (mobile && !sidebarVisible) { showSidebar(); }
 
   // Restore last db/collection
   const lastDb = getState('lastDb');
@@ -1385,9 +1448,14 @@ restoreLastSession();
 const appBody = VStack(0, [connectionScreen, browserScreen]);
 widgetSetBackgroundColor(appBody, bgR, bgG, bgB, 1.0);
 
-// Force screens to fill full window width
+// Force screens to fill full window
 widgetMatchParentWidth(connectionScreen);
 widgetMatchParentWidth(browserScreen);
+// On Android, LinearLayout needs explicit MATCH_PARENT height (UIStackView Fill handles this on Apple)
+if (mobile) {
+  widgetMatchParentHeight(connectionScreen);
+  widgetMatchParentHeight(browserScreen);
+}
 // Pin HStack to browserScreen's full width so sidebar+body stretch
 widgetMatchParentWidth(browserContent);
 widgetMatchParentWidth(toolbarBox);
