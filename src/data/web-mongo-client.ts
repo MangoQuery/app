@@ -30,7 +30,8 @@ function getWsUrl(): string {
 export function webConnect(): void {
   if (ws) return;
   try {
-    ws = new WebSocket(getWsUrl());
+    const WS = (globalThis as any).WebSocket;
+    ws = new WS(getWsUrl());
   } catch (e: any) {
     return;
   }

@@ -544,29 +544,26 @@ function showStatus(msg: string, isError: boolean): void {
   widgetSetHidden(statusText, 0);
 }
 
-// --- Web server status indicator ---
-const webStatusText = Text('');
-textSetFontSize(webStatusText, 12);
-textSetFontFamily(webStatusText, uiFont);
-widgetSetHidden(webStatusText, isWeb ? 0 : 1);
-
+// --- Web server status indicator (only created on web platform) ---
+let webStatusText: any = null;
 let webServerUp = false;
 
-function updateWebStatus(connected: boolean): void {
-  webServerUp = connected;
-  if (!isWeb) return;
-  if (connected) {
-    textSetString(webStatusText, 'Connected to Mango Server');
-    textSetColor(webStatusText, sgR, sgG, sgB, 1.0);
-  } else {
-    textSetString(webStatusText, 'Server unavailable \u2014 run mango-serve');
-    textSetColor(webStatusText, erR, erG, erB, 1.0);
-  }
-}
-
 if (isWeb) {
-  updateWebStatus(false);
-  webSetStatusCallback(updateWebStatus);
+  webStatusText = Text('Server unavailable \u2014 run mango-serve');
+  textSetFontSize(webStatusText, 12);
+  textSetFontFamily(webStatusText, uiFont);
+  textSetColor(webStatusText, erR, erG, erB, 1.0);
+
+  webSetStatusCallback((connected: boolean) => {
+    webServerUp = connected;
+    if (connected) {
+      textSetString(webStatusText, 'Connected to Mango Server');
+      textSetColor(webStatusText, sgR, sgG, sgB, 1.0);
+    } else {
+      textSetString(webStatusText, 'Server unavailable \u2014 run mango-serve');
+      textSetColor(webStatusText, erR, erG, erB, 1.0);
+    }
+  });
   webConnect();
 }
 
@@ -882,12 +879,14 @@ if (mobile) {
 
 // --- Body content below hero ---
 const connBody = VStack(16, [
-  webStatusText,
   statusText,
   connListContainer,
   formContainer,
 ]);
 setPadding(connBody, mobile ? 20 : 28, mobile ? 16 : 60, 32, mobile ? 16 : 60);
+
+// On web, add server status indicator at the top of connection body
+if (isWeb) widgetAddChild(connBody, webStatusText);
 
 // Force containers to fill width (must be after connBody creation so parent exists)
 widgetMatchParentWidth(connListContainer);
