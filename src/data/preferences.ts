@@ -10,6 +10,7 @@ export interface AppPreferences {
   defaultLimit: number;
   expandDocumentsByDefault: boolean;
   showCollectionStats: boolean;
+  analyticsEnabled: boolean;
   lastConnectionId: string | null;
   sidebarWidth: number;
 }
@@ -20,6 +21,7 @@ const DEFAULTS: AppPreferences = {
   defaultLimit: 50,
   expandDocumentsByDefault: false,
   showCollectionStats: true,
+  analyticsEnabled: true,
   lastConnectionId: null,
   sidebarWidth: 260,
 };

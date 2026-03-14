@@ -17,6 +17,7 @@ import { isDarkMode, keychainSave, keychainGet, keychainDelete, getDeviceIdiom }
 import { MongoClient } from 'mongodb';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
 import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
+import { trackAppLaunch, trackConnect, trackQuery } from './data/telemetry';
 
 // --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android, 3=Windows, 4=Linux, 5=Web) ---
 declare const __platform__: number;
@@ -423,7 +424,7 @@ let lastConnError = '';
 async function connectToMongo(uri: string): Promise<boolean> {
   lastConnError = '';
   if (isWeb) {
-    try { await _wsSend('connect', { uri }); currentConnUri = uri; return true; }
+    try { await _wsSend('connect', { uri }); currentConnUri = uri; trackConnect(); return true; }
     catch (e: any) { lastConnError = e.message || 'Connection failed via server'; return false; }
   }
   try {
@@ -434,6 +435,7 @@ async function connectToMongo(uri: string): Promise<boolean> {
       // Connection works
       mongoClient = client;
       currentConnUri = uri;
+      trackConnect();
       return true;
     }
     lastConnError = 'Connected but could not list databases';
@@ -656,6 +658,16 @@ function refreshConnectionList(): void {
     widgetAddChild(welcomeCard, welcomeHint);
     widgetAddChild(welcomeCard, pillGrid);
     widgetAddChild(welcomeCard, ctaBtn);
+
+    // First-launch analytics notice
+    if (!getState('analyticsNoticeShown')) {
+      const noticeText = Text('Mango sends anonymous usage statistics to help improve the app. You can change this in About.');
+      textSetFontSize(noticeText, 11);
+      textSetFontFamily(noticeText, uiFont);
+      textSetColor(noticeText, tmR, tmG, tmB, 0.8);
+      widgetAddChild(welcomeCard, noticeText);
+      saveState('analyticsNoticeShown', '1');
+    }
 
     widgetAddChild(connListContainer, welcomeCard);
     widgetMatchParentWidth(welcomeCard);
@@ -1029,6 +1041,7 @@ async function runQuery(dbName: string, collName: string, filter: string): Promi
 
   widgetAddChild(docsContainer, makeMuted('Querying...', 13));
 
+  trackQuery();
   const result = await queryCollection(dbName, collName, filter);
   displayDocs(result);
 }
@@ -1070,6 +1083,13 @@ function showEditView(docJson: string): void {
     fontSize: 13,
     fontFamily: 'Menlo',
   });
+  // Match editor colors to Mango's theme
+  const ed = jsonEditor.editor;
+  ed.setBgColor(sfR, sfG, sfB);
+  ed.setFgColor(txR, txG, txB);
+  ed.setGutterFgColor(tsR, tsG, tsB);
+  ed.setCursorColor(moR, moG, moB);
+  ed.setSelectionColor(moR, moG, moB, 0.2);
   // Wrap editor in a fixed-height container (embedded NSViews resist height constraints)
   const editorBox = VStack(0, []);
   widgetSetHeight(editorBox, 200);
@@ -1430,12 +1450,16 @@ buttonSetBordered(sidebarToggle, 0);
 buttonSetTextColor(sidebarToggle, moR, moG, moB, 1.0);
 if (!mobile) widgetSetHidden(sidebarToggle, 1);
 
+const browserInfoBtn = Button('About', () => { previousScreen = 1; showScreen(2); });
+buttonSetBordered(browserInfoBtn, 0);
+buttonSetTextColor(browserInfoBtn, tmR, tmG, tmB, 1.0);
+
 // Branded toolbar — must use inline array literals (Perry codegen doesn't support variable arrays)
 let toolbarRow: any;
 if (mobile) {
-  toolbarRow = HStack(10, [sidebarToggle, Spacer(), connLabel, disconnectBtn]);
+  toolbarRow = HStack(10, [sidebarToggle, Spacer(), connLabel, browserInfoBtn, disconnectBtn]);
 } else {
-  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
+  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, browserInfoBtn, disconnectBtn]);
 }
 const toolbarBox = VStack(0, [toolbarRow]);
 setPadding(toolbarBox, isIOS ? 52 : 12, mobile ? 16 : 24, 12, mobile ? 16 : 24); // iOS/iPad top safe area
@@ -1492,15 +1516,112 @@ stackSetDistribution(browserScreen, 0);   // .fill — children stretch to fill
 widgetSetHugging(toolbarBox, 750);         // toolbar stays compact
 widgetSetHugging(browserContent, 1);       // content area expands to fill remaining space
 
+// ============================================================
+//  INFO / ABOUT SCREEN
+// ============================================================
+// Analytics preference: use saveState/getState (connection-store) to avoid
+// instantiating PreferencesStore at module scope which crashes on iOS.
+function isAnalyticsEnabled(): boolean {
+  const val = getState('analyticsEnabled');
+  if (val === '0' || val === 'false') return false;
+  return true; // default: enabled
+}
+function setAnalyticsEnabled(enabled: boolean): void {
+  saveState('analyticsEnabled', enabled ? '1' : '0');
+}
+
+const infoLogo = ImageFile('logo/mango-app-icon-128.png');
+widgetSetWidth(infoLogo, 72);
+widgetSetHeight(infoLogo, 72);
+
+const infoTitle = Text('Mango');
+textSetFontSize(infoTitle, 28);
+textSetFontFamily(infoTitle, uiFont);
+textSetFontWeight(infoTitle, 28, 0.7);
+textSetColor(infoTitle, txR, txG, txB, 1.0);
+
+const infoVersion = Text('Version 1.0.0');
+textSetFontSize(infoVersion, 13);
+textSetFontFamily(infoVersion, uiFont);
+textSetColor(infoVersion, tsR, tsG, tsB, 1.0);
+
+const infoTagline = Text('MongoDB, finally fast.');
+textSetFontSize(infoTagline, 16);
+textSetFontFamily(infoTagline, uiFont);
+textSetColor(infoTagline, tmR, tmG, tmB, 1.0);
+
+const infoAuthor = Text('Made by Skelpo GmbH');
+textSetFontSize(infoAuthor, 13);
+textSetFontFamily(infoAuthor, uiFont);
+textSetColor(infoAuthor, tmR, tmG, tmB, 1.0);
+
+// Analytics toggle
+const analyticsLabel = Text('Send anonymous usage statistics');
+textSetFontSize(analyticsLabel, 15);
+textSetFontFamily(analyticsLabel, uiFont);
+textSetColor(analyticsLabel, txR, txG, txB, 1.0);
+
+const analyticsHint = Text('Helps improve Mango. No personal data is collected.');
+textSetFontSize(analyticsHint, 12);
+textSetFontFamily(analyticsHint, uiFont);
+textSetColor(analyticsHint, tmR, tmG, tmB, 1.0);
+
+const analyticsStatusText = Text(isAnalyticsEnabled() ? 'Enabled' : 'Disabled');
+textSetFontSize(analyticsStatusText, 14);
+textSetFontFamily(analyticsStatusText, uiFont);
+textSetColor(analyticsStatusText, moR, moG, moB, 1.0);
+
+const analyticsToggleBtn = Button(isAnalyticsEnabled() ? 'Disable' : 'Enable', () => {
+  const current = isAnalyticsEnabled();
+  setAnalyticsEnabled(!current);
+  textSetString(analyticsStatusText, !current ? 'Enabled' : 'Disabled');
+  buttonSetTextColor(analyticsToggleBtn, !current ? erR : sgR, !current ? erG : sgG, !current ? erB : sgB, 1.0);
+});
+buttonSetBordered(analyticsToggleBtn, 0);
+buttonSetTextColor(analyticsToggleBtn, isAnalyticsEnabled() ? erR : sgR, isAnalyticsEnabled() ? erG : sgG, isAnalyticsEnabled() ? erB : sgB, 1.0);
+
+const analyticsRow = HStack(12, [analyticsLabel, Spacer(), analyticsStatusText, analyticsToggleBtn]);
+
+let previousScreen = 0;
+const backBtn = Button('Back', () => { showScreen(previousScreen); });
+buttonSetBordered(backBtn, 0);
+buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
+
+const infoCard = VStack(16, [
+  HStack(16, [infoLogo, VStack(4, [infoTitle, infoVersion])]),
+  infoTagline,
+  infoAuthor,
+  Divider(),
+  analyticsRow,
+  analyticsHint,
+]);
+widgetSetBackgroundColor(infoCard, sfR, sfG, sfB, 1.0);
+setCornerRadius(infoCard, 14);
+setPadding(infoCard, 28, 32, 28, 32);
+
+const infoBody = VStack(16, [
+  HStack(8, [backBtn, Spacer()]),
+  infoCard,
+]);
+setPadding(infoBody, mobile ? 20 : 40, mobile ? 16 : 60, 32, mobile ? 16 : 60);
+
+const infoContent = VStack(0, [infoBody]);
+const infoScreen = ScrollView();
+scrollviewSetChild(infoScreen, infoContent);
+widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
+widgetSetHidden(infoScreen, 1);
+
+// Info buttons for connection and browser screens
+const connInfoBtn = Button('About', () => { previousScreen = 0; showScreen(2); });
+buttonSetBordered(connInfoBtn, 0);
+buttonSetTextColor(connInfoBtn, tmR, tmG, tmB, 1.0);
+widgetAddChild(connBody, HStack(0, [Spacer(), connInfoBtn, Spacer()]));
+
 // --- Screen switching ---
 function showScreen(idx: number): void {
-  if (idx === 0) {
-    widgetSetHidden(connectionScreen, 0);
-    widgetSetHidden(browserScreen, 1);
-  } else {
-    widgetSetHidden(connectionScreen, 1);
-    widgetSetHidden(browserScreen, 0);
-  }
+  widgetSetHidden(connectionScreen, idx === 0 ? 0 : 1);
+  widgetSetHidden(browserScreen, idx === 1 ? 0 : 1);
+  widgetSetHidden(infoScreen, idx === 2 ? 0 : 1);
 }
 
 // --- Restore last session ---
@@ -1542,18 +1663,21 @@ async function restoreLastSession(): Promise<void> {
   }
 }
 restoreLastSession();
+trackAppLaunch();
 
 // --- Launch ---
-const appBody = VStack(0, [connectionScreen, browserScreen]);
+const appBody = VStack(0, [connectionScreen, browserScreen, infoScreen]);
 widgetSetBackgroundColor(appBody, bgR, bgG, bgB, 1.0);
 
 // Force screens to fill full window
 widgetMatchParentWidth(connectionScreen);
 widgetMatchParentWidth(browserScreen);
+widgetMatchParentWidth(infoScreen);
 // On Android, LinearLayout needs explicit MATCH_PARENT height (UIStackView Fill handles this on Apple)
 if (mobile) {
   widgetMatchParentHeight(connectionScreen);
   widgetMatchParentHeight(browserScreen);
+  widgetMatchParentHeight(infoScreen);
 }
 // Pin HStack to browserScreen's full width so sidebar+body stretch
 widgetMatchParentWidth(browserContent);
