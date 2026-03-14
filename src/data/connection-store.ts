@@ -4,22 +4,21 @@ declare const __platform__: number;
 const isWeb = __platform__ === 5;
 
 // Web: localStorage-based persistence (no SQLite in browser)
-// Access localStorage via globalThis so Perry doesn't resolve it as a native symbol on iOS/macOS
+// These functions are only called inside isWeb guards, and __platform__ is a compile-time
+// constant — Cranelift eliminates dead branches, so this code is stripped from native builds.
 let webTransient = false;
 export function setWebTransient(t: boolean): void { webTransient = t; }
 
-function webStorage(): any { return (globalThis as any).localStorage; }
-
 function webGetConnections(): any[] {
   if (webTransient) return [];
-  const raw = webStorage().getItem('mango-connections');
+  const raw = localStorage.getItem('mango-connections');
   if (!raw) return [];
   try { return JSON.parse(raw); } catch (e: any) { return []; }
 }
 
 function webSaveConnections(conns: any[]): void {
   if (webTransient) return;
-  webStorage().setItem('mango-connections', JSON.stringify(conns));
+  localStorage.setItem('mango-connections', JSON.stringify(conns));
 }
 
 export interface ConnectionProfile {
@@ -196,7 +195,7 @@ export function deleteConnection(id: string): boolean {
 
 export function saveState(key: string, value: string): void {
   if (isWeb) {
-    if (!webTransient) webStorage().setItem('mango-state-' + key, value);
+    if (!webTransient) localStorage.setItem('mango-state-' + key, value);
     return;
   }
   const db: any = initDb();
@@ -205,7 +204,7 @@ export function saveState(key: string, value: string): void {
 
 export function getState(key: string): string {
   if (isWeb) {
-    return webStorage().getItem('mango-state-' + key) || '';
+    return localStorage.getItem('mango-state-' + key) || '';
   }
   const db: any = initDb();
   const row: any = db.prepare("SELECT value FROM app_state WHERE key = '" + esc(key) + "'").get();

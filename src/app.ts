@@ -16,12 +16,7 @@ import {
 import { isDarkMode, keychainSave, keychainGet, keychainDelete, getDeviceIdiom } from 'perry/system';
 import { MongoClient } from 'mongodb';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
-import { getAllConnections, createConnection, deleteConnection, saveState, getState } from './data/connection-store';
-import {
-  webConnect, webIsServerConnected, webSetStatusCallback,
-  webConnectToMongo, webDisconnect, webListDatabases, webListCollections,
-  webQueryCollection, webUpdateDocument, webDeleteDocument, webInsertDocument,
-} from './data/web-mongo-client';
+import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
 
 // --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android, 3=Windows, 4=Linux, 5=Web) ---
 declare const __platform__: number;
@@ -381,16 +376,55 @@ function extractFields(docJson: string): string[][] {
   return fields;
 }
 
+// --- Web MongoDB proxy (inline — only compiled for web target) ---
+let _ws: any = null;
+let _wsReqId = 0;
+let _wsPending: any = {};
+let _wsConnected = false;
+let _wsServerUp = false;
+let _wsOnStatus: ((up: boolean) => void) | null = null;
+
+function _wsSend(action: string, params: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (!_ws || !_wsServerUp) { reject(new Error('Not connected to server')); return; }
+    const id = ++_wsReqId;
+    _wsPending[id] = { resolve, reject };
+    _ws.send(JSON.stringify({ id, action, params }));
+  });
+}
+
+function _wsOpen(): void {
+  if (_ws) return;
+  try {
+    const loc = (globalThis as any).location;
+    const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = proto + '//' + loc.host + '/ws';
+    _ws = new ((globalThis as any).WebSocket)(url);
+  } catch (e: any) { return; }
+
+  _ws.onopen = () => { _wsServerUp = true; if (_wsOnStatus) _wsOnStatus(true); };
+  _ws.onclose = () => {
+    _ws = null; _wsServerUp = false;
+    if (_wsOnStatus) _wsOnStatus(false);
+    setTimeout(() => { _wsOpen(); }, 3000);
+  };
+  _ws.onmessage = (ev: any) => {
+    let m: any;
+    try { m = JSON.parse(ev.data); } catch (e: any) { return; }
+    if (m.type === 'config') { if (m.transient) setWebTransient(true); return; }
+    const p = _wsPending[m.id];
+    if (p) { delete _wsPending[m.id]; m.error ? p.reject(new Error(m.error)) : p.resolve(m.data); }
+  };
+}
+
 // --- MongoDB ---
 let lastConnError = '';
 
 async function connectToMongo(uri: string): Promise<boolean> {
   lastConnError = '';
   if (isWeb) {
-    const ok = await webConnectToMongo(uri);
-    if (!ok) lastConnError = 'Connection failed via server';
-    else currentConnUri = uri;
-    return ok;
+    try { await _wsSend('connect', { uri }); currentConnUri = uri; return true; }
+    catch (e: any) { lastConnError = e.message || 'Connection failed via server'; return false; }
   }
   try {
     const client = await MongoClient.connect(uri);
@@ -412,7 +446,7 @@ async function connectToMongo(uri: string): Promise<boolean> {
 }
 
 async function queryCollection(dbName: string, collName: string, filter: string): Promise<string> {
-  if (isWeb) return webQueryCollection(dbName, collName, filter);
+  if (isWeb) { try { const r = await _wsSend('find', { dbName, collName, filter }); return typeof r === 'string' ? r : JSON.stringify(r); } catch (e: any) { return '{"error":"' + (e.message || 'query failed') + '"}'; } }
   if (!mongoClient) return '{"error":"not connected"}';
   try {
     const db = mongoClient.db(dbName);
@@ -427,7 +461,7 @@ async function queryCollection(dbName: string, collName: string, filter: string)
 }
 
 async function updateDocument(dbName: string, collName: string, filter: string, update: string): Promise<number> {
-  if (isWeb) return webUpdateDocument(dbName, collName, filter, update);
+  if (isWeb) { try { const r = await _wsSend('updateOne', { dbName, collName, filter, update }); return typeof r === 'number' ? r : 0; } catch (e: any) { return 0; } }
   if (!mongoClient) return 0;
   try {
     const db = mongoClient.db(dbName);
@@ -440,7 +474,7 @@ async function updateDocument(dbName: string, collName: string, filter: string, 
 }
 
 async function deleteDocument(dbName: string, collName: string, filter: string): Promise<number> {
-  if (isWeb) return webDeleteDocument(dbName, collName, filter);
+  if (isWeb) { try { const r = await _wsSend('deleteOne', { dbName, collName, filter }); return typeof r === 'number' ? r : 0; } catch (e: any) { return 0; } }
   if (!mongoClient) return 0;
   try {
     const db = mongoClient.db(dbName);
@@ -453,7 +487,7 @@ async function deleteDocument(dbName: string, collName: string, filter: string):
 }
 
 async function listDatabases(): Promise<string[]> {
-  if (isWeb) return webListDatabases();
+  if (isWeb) { try { const r = await _wsSend('listDatabases', {}); if (Array.isArray(r)) return r; if (typeof r === 'string') { const p = JSON.parse(r); if (Array.isArray(p)) return p; } return []; } catch (e: any) { return []; } }
   if (!mongoClient) return [];
   try {
     const result = await mongoClient.listDatabases();
@@ -469,7 +503,7 @@ async function listDatabases(): Promise<string[]> {
 }
 
 async function listCollections(dbName: string): Promise<string[]> {
-  if (isWeb) return webListCollections(dbName);
+  if (isWeb) { try { const r = await _wsSend('listCollections', { dbName }); if (Array.isArray(r)) return r; if (typeof r === 'string') { const p = JSON.parse(r); if (Array.isArray(p)) return p; } return []; } catch (e: any) { return []; } }
   if (!mongoClient) return [];
   try {
     const db = mongoClient.db(dbName);
@@ -554,17 +588,17 @@ if (isWeb) {
   textSetFontFamily(webStatusText, uiFont);
   textSetColor(webStatusText, erR, erG, erB, 1.0);
 
-  webSetStatusCallback((connected: boolean) => {
-    webServerUp = connected;
-    if (connected) {
+  _wsOnStatus = (up: boolean) => {
+    webServerUp = up;
+    if (up) {
       textSetString(webStatusText, 'Connected to Mango Server');
       textSetColor(webStatusText, sgR, sgG, sgB, 1.0);
     } else {
       textSetString(webStatusText, 'Server unavailable \u2014 run mango-serve');
       textSetColor(webStatusText, erR, erG, erB, 1.0);
     }
-  });
-  webConnect();
+  };
+  _wsOpen();
 }
 
 // ============================================================
