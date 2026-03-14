@@ -1450,7 +1450,7 @@ buttonSetBordered(sidebarToggle, 0);
 buttonSetTextColor(sidebarToggle, moR, moG, moB, 1.0);
 if (!mobile) widgetSetHidden(sidebarToggle, 1);
 
-const browserInfoBtn = Button('About', () => { previousScreen = 1; showScreen(2); });
+const browserInfoBtn = Button('About', () => { saveState('previousScreen', '1'); showScreen(2); });
 buttonSetBordered(browserInfoBtn, 0);
 buttonSetTextColor(browserInfoBtn, tmR, tmG, tmB, 1.0);
 
@@ -1531,13 +1531,13 @@ function setAnalyticsEnabled(enabled: boolean): void {
 }
 
 const infoLogo = ImageFile('logo/mango-app-icon-128.png');
-widgetSetWidth(infoLogo, 72);
-widgetSetHeight(infoLogo, 72);
+widgetSetWidth(infoLogo, 80);
+widgetSetHeight(infoLogo, 80);
 
 const infoTitle = Text('Mango');
-textSetFontSize(infoTitle, 28);
+textSetFontSize(infoTitle, 32);
 textSetFontFamily(infoTitle, uiFont);
-textSetFontWeight(infoTitle, 28, 0.7);
+textSetFontWeight(infoTitle, 32, 0.7);
 textSetColor(infoTitle, txR, txG, txB, 1.0);
 
 const infoVersion = Text('Version 1.0.0');
@@ -1546,73 +1546,123 @@ textSetFontFamily(infoVersion, uiFont);
 textSetColor(infoVersion, tsR, tsG, tsB, 1.0);
 
 const infoTagline = Text('MongoDB, finally fast.');
-textSetFontSize(infoTagline, 16);
+textSetFontSize(infoTagline, 15);
 textSetFontFamily(infoTagline, uiFont);
-textSetColor(infoTagline, tmR, tmG, tmB, 1.0);
+textSetColor(infoTagline, moR, moG, moB, 1.0);
 
 const infoAuthor = Text('Made by Skelpo GmbH');
 textSetFontSize(infoAuthor, 13);
 textSetFontFamily(infoAuthor, uiFont);
 textSetColor(infoAuthor, tmR, tmG, tmB, 1.0);
 
+const infoUrl = Text('mangoquery.com');
+textSetFontSize(infoUrl, 13);
+textSetFontFamily(infoUrl, uiFont);
+textSetColor(infoUrl, tsR, tsG, tsB, 1.0);
+
+// Settings section header
+const settingsHeader = Text('Settings');
+textSetFontSize(settingsHeader, 12);
+textSetFontFamily(settingsHeader, uiFont);
+textSetFontWeight(settingsHeader, 12, 0.5);
+textSetColor(settingsHeader, tmR, tmG, tmB, 1.0);
+
 // Analytics toggle
-const analyticsLabel = Text('Send anonymous usage statistics');
-textSetFontSize(analyticsLabel, 15);
+const analyticsLabel = Text('Anonymous usage statistics');
+textSetFontSize(analyticsLabel, 14);
 textSetFontFamily(analyticsLabel, uiFont);
 textSetColor(analyticsLabel, txR, txG, txB, 1.0);
 
 const analyticsHint = Text('Helps improve Mango. No personal data is collected.');
 textSetFontSize(analyticsHint, 12);
 textSetFontFamily(analyticsHint, uiFont);
-textSetColor(analyticsHint, tmR, tmG, tmB, 1.0);
+textSetColor(analyticsHint, tmR, tmG, tmB, 0.7);
 
 const analyticsStatusText = Text(isAnalyticsEnabled() ? 'Enabled' : 'Disabled');
-textSetFontSize(analyticsStatusText, 14);
+textSetFontSize(analyticsStatusText, 13);
 textSetFontFamily(analyticsStatusText, uiFont);
 textSetColor(analyticsStatusText, moR, moG, moB, 1.0);
 
-const analyticsToggleBtn = Button(isAnalyticsEnabled() ? 'Disable' : 'Enable', () => {
-  const current = isAnalyticsEnabled();
-  setAnalyticsEnabled(!current);
-  textSetString(analyticsStatusText, !current ? 'Enabled' : 'Disabled');
-  buttonSetTextColor(analyticsToggleBtn, !current ? erR : sgR, !current ? erG : sgG, !current ? erB : sgB, 1.0);
+// Wrap each button in a VStack so we can toggle visibility via the wrapper.
+// Perry closures capture by value, so buttons can't reference each other directly.
+const disableWrap = VStack(0, []);
+const enableWrap = VStack(0, []);
+
+const disableBtn = Button('Disable', () => {
+  setAnalyticsEnabled(false);
+  textSetString(analyticsStatusText, 'Disabled');
+  widgetSetHidden(disableWrap, 1);
+  widgetSetHidden(enableWrap, 0);
 });
-buttonSetBordered(analyticsToggleBtn, 0);
-buttonSetTextColor(analyticsToggleBtn, isAnalyticsEnabled() ? erR : sgR, isAnalyticsEnabled() ? erG : sgG, isAnalyticsEnabled() ? erB : sgB, 1.0);
+buttonSetBordered(disableBtn, 0);
+buttonSetTextColor(disableBtn, erR, erG, erB, 1.0);
+widgetAddChild(disableWrap, disableBtn);
 
-const analyticsRow = HStack(12, [analyticsLabel, Spacer(), analyticsStatusText, analyticsToggleBtn]);
+const enableBtn = Button('Enable', () => {
+  setAnalyticsEnabled(true);
+  textSetString(analyticsStatusText, 'Enabled');
+  widgetSetHidden(enableWrap, 1);
+  widgetSetHidden(disableWrap, 0);
+});
+buttonSetBordered(enableBtn, 0);
+buttonSetTextColor(enableBtn, sgR, sgG, sgB, 1.0);
+widgetAddChild(enableWrap, enableBtn);
 
-let previousScreen = 0;
-const backBtn = Button('Back', () => { showScreen(previousScreen); });
+widgetSetHidden(disableWrap, isAnalyticsEnabled() ? 0 : 1);
+widgetSetHidden(enableWrap, isAnalyticsEnabled() ? 1 : 0);
+
+const analyticsRow = HStack(8, [analyticsLabel, Spacer(), analyticsStatusText, disableWrap, enableWrap]);
+
+const backBtn = Button('Back', () => {
+  const prev = getState('previousScreen');
+  showScreen(prev === '1' ? 1 : 0);
+});
 buttonSetBordered(backBtn, 0);
 buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
 
-const infoCard = VStack(16, [
+// Header card with centered logo, title, tagline
+const infoHeaderCard = VStack(12, [
   HStack(16, [infoLogo, VStack(4, [infoTitle, infoVersion])]),
   infoTagline,
-  infoAuthor,
   Divider(),
+  infoAuthor,
+  infoUrl,
+]);
+widgetSetBackgroundColor(infoHeaderCard, sfR, sfG, sfB, 1.0);
+setCornerRadius(infoHeaderCard, 14);
+setPadding(infoHeaderCard, 28, 32, 24, 32);
+
+// Settings card
+const infoSettingsCard = VStack(10, [
   analyticsRow,
   analyticsHint,
 ]);
-widgetSetBackgroundColor(infoCard, sfR, sfG, sfB, 1.0);
-setCornerRadius(infoCard, 14);
-setPadding(infoCard, 28, 32, 28, 32);
+widgetSetBackgroundColor(infoSettingsCard, sfR, sfG, sfB, 1.0);
+setCornerRadius(infoSettingsCard, 14);
+setPadding(infoSettingsCard, 20, 28, 20, 28);
 
-const infoBody = VStack(16, [
+const infoBody = VStack(12, [
   HStack(8, [backBtn, Spacer()]),
-  infoCard,
+  infoHeaderCard,
+  settingsHeader,
+  infoSettingsCard,
 ]);
-setPadding(infoBody, mobile ? 20 : 40, mobile ? 16 : 60, 32, mobile ? 16 : 60);
+const infoPadH = mobile ? 16 : 280;
+setPadding(infoBody, mobile ? 20 : 40, infoPadH, 32, infoPadH);
+
+// Force cards to fill width
+widgetMatchParentWidth(infoHeaderCard);
+widgetMatchParentWidth(infoSettingsCard);
 
 const infoContent = VStack(0, [infoBody]);
+widgetMatchParentWidth(infoBody);
 const infoScreen = ScrollView();
 scrollviewSetChild(infoScreen, infoContent);
 widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
 widgetSetHidden(infoScreen, 1);
 
 // Info buttons for connection and browser screens
-const connInfoBtn = Button('About', () => { previousScreen = 0; showScreen(2); });
+const connInfoBtn = Button('About', () => { saveState('previousScreen', '0'); showScreen(2); });
 buttonSetBordered(connInfoBtn, 0);
 buttonSetTextColor(connInfoBtn, tmR, tmG, tmB, 1.0);
 widgetAddChild(connBody, HStack(0, [Spacer(), connInfoBtn, Spacer()]));
