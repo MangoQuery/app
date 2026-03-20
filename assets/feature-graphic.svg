@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2B2D42"/>
+      <stop offset="100%" style="stop-color:#1A1B2E"/>
+    </linearGradient>
+    <linearGradient id="mangoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFBF69"/>
+      <stop offset="50%" style="stop-color:#FF9F1C"/>
+      <stop offset="100%" style="stop-color:#E8572A"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2EC4B6"/>
+      <stop offset="100%" style="stop-color:#1A9E92"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9F1C; stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#E8572A; stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bgGrad)"/>
+
+  <!-- Subtle decorative circles -->
+  <circle cx="160" cy="400" r="300" fill="url(#glowGrad)" opacity="0.5"/>
+  <circle cx="850" cy="100" r="250" fill="url(#glowGrad)" opacity="0.3"/>
+
+  <!-- Subtle grid dots for tech feel -->
+  <g fill="#FFF8F0" opacity="0.04">
+    <circle cx="50" cy="50" r="2"/><circle cx="100" cy="50" r="2"/><circle cx="150" cy="50" r="2"/><circle cx="200" cy="50" r="2"/>
+    <circle cx="50" cy="100" r="2"/><circle cx="100" cy="100" r="2"/><circle cx="150" cy="100" r="2"/><circle cx="200" cy="100" r="2"/>
+    <circle cx="50" cy="150" r="2"/><circle cx="100" cy="150" r="2"/><circle cx="150" cy="150" r="2"/><circle cx="200" cy="150" r="2"/>
+    <circle cx="824" cy="350" r="2"/><circle cx="874" cy="350" r="2"/><circle cx="924" cy="350" r="2"/><circle cx="974" cy="350" r="2"/>
+    <circle cx="824" cy="400" r="2"/><circle cx="874" cy="400" r="2"/><circle cx="924" cy="400" r="2"/><circle cx="974" cy="400" r="2"/>
+    <circle cx="824" cy="450" r="2"/><circle cx="874" cy="450" r="2"/><circle cx="924" cy="450" r="2"/><circle cx="974" cy="450" r="2"/>
+  </g>
+
+  <!-- Mango icon (scaled up, centered-left) -->
+  <g transform="translate(280, 130) scale(2.8)">
+    <!-- Mango fruit body -->
+    <ellipse cx="52" cy="62" rx="36" ry="42" fill="url(#mangoGrad)" transform="rotate(-15, 52, 62)"/>
+    <!-- Mango highlight -->
+    <ellipse cx="42" cy="50" rx="14" ry="20" fill="rgba(255,255,255,0.2)" transform="rotate(-15, 42, 50)"/>
+    <!-- Stem -->
+    <path d="M 68 24 Q 72 16 78 12" stroke="#D4A843" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- Leaf -->
+    <path d="M 78 12 Q 96 4 104 14 Q 96 18 78 12 Z" fill="url(#leafGrad)"/>
+    <path d="M 80 12.5 Q 90 10 98 13" stroke="rgba(255,255,255,0.3)" stroke-width="1" fill="none"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="570" y="275" font-family="'Rubik', 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="88" font-weight="700" fill="#FFF8F0" letter-spacing="4">mango</text>
+
+  <!-- Tagline -->
+  <text x="574" y="320" font-family="'Rubik', 'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="400" fill="#8D99AE" letter-spacing="3">NATIVE MONGODB GUI</text>
+</svg>

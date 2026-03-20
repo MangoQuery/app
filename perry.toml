@@ -1,10 +1,45 @@
-# Perry configuration
-# https://github.com/PerryTS/perry
+[android]
+distribute = "playstore"
+google_play_key = "/Users/amlug/projects/android-data/googleplay.json"
+key_alias = "key0"
+keystore = "/Users/amlug/projects/android-data/mango.keystore"
 
-[project]
-name = "mango"
-entry = "src/app.ts"
+[audit]
+ignore = [
+    "hardcoded-secret",
+    "sql-injection",
+]
 
 [build]
-out_dir = "dist"
 opt_level = 2
+out_dir = "dist"
+
+[ios]
+bundle_id = "com.skelpo.mango"
+certificate = "/Users/amlug/.perry/distribution.p12"
+distribute = "testflight"
+encryption_exempt = true
+provisioning_profile = "/Users/amlug/.perry/perry.mobileprovision"
+signing_identity = "Apple Distribution: Skelpo GmbH (K6UW5YV9F7)"
+
+[macos]
+bundle_id = "com.skelpo.mango"
+certificate = "/Users/amlug/.perry/macos_appstore.p12"
+distribute = "both"
+encryption_exempt = true
+entitlements = [
+    "com.apple.security.app-sandbox",
+    "com.apple.security.network.client",
+]
+installer_certificate = "/Users/amlug/.perry/macos_installer.p12"
+notarize_certificate = "/Users/amlug/.perry/macos_devid.p12"
+notarize_signing_identity = "Developer ID Application: Skelpo GmbH"
+signing_identity = "Mac App Distribution: Skelpo GmbH"
+
+[project]
+build_number = 54
+entry = "src/app.ts"
+name = "Mango"
+
+[project.icons]
+source = "assets/icon.png"
