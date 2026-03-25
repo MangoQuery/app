@@ -52,13 +52,16 @@ jobs:
 
       - name: Publish macOS
         run: |
-          perry publish macos
+          perry publish macos \
+            --apple-p8-key /tmp/appstore_connect.p8 \
+            --apple-key-id "$PERRY_APPLE_KEY_ID" \
+            --apple-issuer-id "$PERRY_APPLE_ISSUER_ID" \
+            --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
           PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
-          PERRY_APPLE_P8_KEY_PATH: /tmp/appstore_connect.p8
 
       - name: Rename and upload artifact
         run: |
@@ -196,7 +199,12 @@ jobs:
           sed -i '/^\[ios\]/a provisioning_profile = "/tmp/perry.mobileprovision"' perry.toml
 
       - name: Publish iOS to TestFlight
-        run: perry publish ios
+        run: |
+          perry publish ios \
+            --apple-p8-key /tmp/appstore_connect.p8 \
+            --apple-key-id "$PERRY_APPLE_KEY_ID" \
+            --apple-issuer-id "$PERRY_APPLE_ISSUER_ID" \
+            --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
           PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
