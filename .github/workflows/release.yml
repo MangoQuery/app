@@ -21,7 +21,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
           cd ../hone/hone-editor
-          git sparse-checkout set core perry view-model package.json tsconfig.json
+          git sparse-checkout set --no-cone '!/native' '!/examples' '/*'
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -80,7 +80,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
           cd ../hone/hone-editor
-          git sparse-checkout set core perry view-model package.json tsconfig.json
+          git sparse-checkout set --no-cone '!/native' '!/examples' '/*'
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -119,7 +119,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
           cd ../hone/hone-editor
-          git sparse-checkout set core perry view-model package.json tsconfig.json
+          git sparse-checkout set --no-cone '!/native' '!/examples' '/*'
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -168,7 +168,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
           cd ../hone/hone-editor
-          git sparse-checkout set core perry view-model package.json tsconfig.json
+          git sparse-checkout set --no-cone '!/native' '!/examples' '/*'
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -214,7 +214,7 @@ jobs:
         run: |
           git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
           cd ../hone/hone-editor
-          git sparse-checkout set core perry view-model package.json tsconfig.json
+          git sparse-checkout set --no-cone '!/native' '!/examples' '/*'
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
