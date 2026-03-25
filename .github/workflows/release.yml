@@ -97,6 +97,17 @@ jobs:
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
+      - name: Debug workspace size
+        run: |
+          echo "=== Project dir ==="
+          du -sh .
+          du -sh * | sort -rh | head -10
+          echo "=== Hone-editor ==="
+          du -sh ../hone/hone-editor
+          du -sh ../hone/hone-editor/* 2>/dev/null | sort -rh | head -10
+          echo "=== node_modules ==="
+          ls -la node_modules/ 2>/dev/null || echo "no node_modules"
+
       - name: Publish Linux
         run: perry publish linux
 
