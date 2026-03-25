@@ -26,9 +26,11 @@ jobs:
 
       - name: Install perry
         run: |
-          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
-          tar xzf perry.tar.gz
-          sudo mv perry /usr/local/bin/
+          mkdir -p /tmp/perry-install
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --dir /tmp/perry-install
+          tar xzf /tmp/perry-install/perry-linux-x86_64.tar.gz -C /tmp/perry-install
+          sudo mv /tmp/perry-install/perry /usr/local/bin/
+          rm -rf /tmp/perry-install
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -87,26 +89,17 @@ jobs:
 
       - name: Install perry
         run: |
-          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
-          tar xzf perry.tar.gz
-          sudo mv perry /usr/local/bin/
+          mkdir -p /tmp/perry-install
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --dir /tmp/perry-install
+          tar xzf /tmp/perry-install/perry-linux-x86_64.tar.gz -C /tmp/perry-install
+          sudo mv /tmp/perry-install/perry /usr/local/bin/
+          rm -rf /tmp/perry-install
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
-
-      - name: Debug workspace size
-        run: |
-          echo "=== Project dir ==="
-          du -sh .
-          du -sh * | sort -rh | head -10
-          echo "=== Hone-editor ==="
-          du -sh ../hone/hone-editor
-          du -sh ../hone/hone-editor/* 2>/dev/null | sort -rh | head -10
-          echo "=== node_modules ==="
-          ls -la node_modules/ 2>/dev/null || echo "no node_modules"
 
       - name: Publish Linux
         run: perry publish linux
@@ -136,9 +129,11 @@ jobs:
 
       - name: Install perry
         run: |
-          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
-          tar xzf perry.tar.gz
-          sudo mv perry /usr/local/bin/
+          mkdir -p /tmp/perry-install
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --dir /tmp/perry-install
+          tar xzf /tmp/perry-install/perry-linux-x86_64.tar.gz -C /tmp/perry-install
+          sudo mv /tmp/perry-install/perry /usr/local/bin/
+          rm -rf /tmp/perry-install
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -184,9 +179,11 @@ jobs:
 
       - name: Install perry
         run: |
-          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
-          tar xzf perry.tar.gz
-          sudo mv perry /usr/local/bin/
+          mkdir -p /tmp/perry-install
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --dir /tmp/perry-install
+          tar xzf /tmp/perry-install/perry-linux-x86_64.tar.gz -C /tmp/perry-install
+          sudo mv /tmp/perry-install/perry /usr/local/bin/
+          rm -rf /tmp/perry-install
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -234,9 +231,11 @@ jobs:
 
       - name: Install perry
         run: |
-          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
-          tar xzf perry.tar.gz
-          sudo mv perry /usr/local/bin/
+          mkdir -p /tmp/perry-install
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --dir /tmp/perry-install
+          tar xzf /tmp/perry-install/perry-linux-x86_64.tar.gz -C /tmp/perry-install
+          sudo mv /tmp/perry-install/perry /usr/local/bin/
+          rm -rf /tmp/perry-install
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}

@@ -10,6 +10,9 @@ source = "assets/icon.png"
 opt_level = 2
 out_dir = "dist"
 
+[publish]
+exclude = ["assets/screenshots", "test-screenshots", "tests", "logo"]
+
 [audit]
 ignore = [
     "hardcoded-secret",
