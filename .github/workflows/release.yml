@@ -23,24 +23,14 @@ jobs:
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get latest perry version
-        id: perry-version
-        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
-
-      - name: Cache perry binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/perry
-          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
-
       - name: Install perry
         run: |
-          if ! command -v perry &> /dev/null; then
-            cargo install perry
-          fi
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
+          tar xzf perry.tar.gz
+          sudo mv perry /usr/local/bin/
+          perry --version
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
@@ -90,24 +80,14 @@ jobs:
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get latest perry version
-        id: perry-version
-        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
-
-      - name: Cache perry binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/perry
-          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
-
       - name: Install perry
         run: |
-          if ! command -v perry &> /dev/null; then
-            cargo install perry
-          fi
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
+          tar xzf perry.tar.gz
+          sudo mv perry /usr/local/bin/
+          perry --version
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
@@ -137,24 +117,14 @@ jobs:
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get latest perry version
-        id: perry-version
-        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
-
-      - name: Cache perry binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/perry
-          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
-
       - name: Install perry
         run: |
-          if ! command -v perry &> /dev/null; then
-            cargo install perry
-          fi
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
+          tar xzf perry.tar.gz
+          sudo mv perry /usr/local/bin/
+          perry --version
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
@@ -194,24 +164,14 @@ jobs:
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get latest perry version
-        id: perry-version
-        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
-
-      - name: Cache perry binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/perry
-          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
-
       - name: Install perry
         run: |
-          if ! command -v perry &> /dev/null; then
-            cargo install perry
-          fi
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
+          tar xzf perry.tar.gz
+          sudo mv perry /usr/local/bin/
+          perry --version
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
@@ -248,24 +208,14 @@ jobs:
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Get latest perry version
-        id: perry-version
-        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
-
-      - name: Cache perry binary
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/perry
-          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
-
       - name: Install perry
         run: |
-          if ! command -v perry &> /dev/null; then
-            cargo install perry
-          fi
+          gh release download --repo PerryTS/perry --pattern 'perry-linux-x86_64.tar.gz' --output perry.tar.gz
+          tar xzf perry.tar.gz
+          sudo mv perry /usr/local/bin/
+          perry --version
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Set build number
         run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
