@@ -19,7 +19,9 @@ jobs:
 
       - name: Clone hone-editor dependency
         run: |
-          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+          git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
+          cd ../hone/hone-editor
+          git sparse-checkout set core perry view-model package.json tsconfig.json
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -76,7 +78,9 @@ jobs:
 
       - name: Clone hone-editor dependency
         run: |
-          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+          git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
+          cd ../hone/hone-editor
+          git sparse-checkout set core perry view-model package.json tsconfig.json
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -113,7 +117,9 @@ jobs:
 
       - name: Clone hone-editor dependency
         run: |
-          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+          git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
+          cd ../hone/hone-editor
+          git sparse-checkout set core perry view-model package.json tsconfig.json
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -160,7 +166,9 @@ jobs:
 
       - name: Clone hone-editor dependency
         run: |
-          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+          git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
+          cd ../hone/hone-editor
+          git sparse-checkout set core perry view-model package.json tsconfig.json
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -204,7 +212,9 @@ jobs:
 
       - name: Clone hone-editor dependency
         run: |
-          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+          git clone --depth 1 --filter=blob:none --sparse "$HONE_EDITOR_REPO" ../hone/hone-editor
+          cd ../hone/hone-editor
+          git sparse-checkout set core perry view-model package.json tsconfig.json
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
