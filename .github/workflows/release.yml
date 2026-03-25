@@ -1,0 +1,286 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  PERRY_LICENSE_KEY: ${{ secrets.PERRY_LICENSE_KEY }}
+
+jobs:
+  build-macos:
+    name: macOS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone hone-editor dependency
+        run: |
+          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+        env:
+          HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest perry version
+        id: perry-version
+        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+      - name: Cache perry binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/perry
+          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
+
+      - name: Install perry
+        run: |
+          if ! command -v perry &> /dev/null; then
+            cargo install perry
+          fi
+
+      - name: Set build number
+        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+
+      - name: Decode signing credentials
+        run: |
+          echo "${{ secrets.APPLE_APPSTORE_P12 }}" | base64 -d > /tmp/macos_appstore.p12
+          echo "${{ secrets.APPLE_INSTALLER_P12 }}" | base64 -d > /tmp/macos_installer.p12
+          echo "${{ secrets.APPLE_DEVID_P12_PART1 }}${{ secrets.APPLE_DEVID_P12_PART2 }}" | base64 -d > /tmp/macos_devid.p12
+          echo "${{ secrets.APPLE_P8_KEY }}" | base64 -d > /tmp/appstore_connect.p8
+
+      - name: Inject credential paths into perry.toml
+        run: |
+          sed -i '/^\[macos\]/a certificate = "/tmp/macos_appstore.p12"' perry.toml
+          sed -i '/^\[macos\]/a installer_certificate = "/tmp/macos_installer.p12"' perry.toml
+          sed -i '/^\[macos\]/a notarize_certificate = "/tmp/macos_devid.p12"' perry.toml
+
+      - name: Publish macOS
+        run: |
+          perry publish macos
+        env:
+          PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          PERRY_APPLE_P8_KEY_PATH: /tmp/appstore_connect.p8
+
+      - name: Rename and upload artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mv dist/Mango-*.dmg "dist/Mango-${VERSION}-macos.dmg"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Mango-*-macos.dmg
+
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone hone-editor dependency
+        run: |
+          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+        env:
+          HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest perry version
+        id: perry-version
+        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+      - name: Cache perry binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/perry
+          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
+
+      - name: Install perry
+        run: |
+          if ! command -v perry &> /dev/null; then
+            cargo install perry
+          fi
+
+      - name: Set build number
+        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+
+      - name: Publish Linux
+        run: perry publish linux
+
+      - name: Rename and upload artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mv dist/Mango-*.tar.gz "dist/Mango-${VERSION}-linux-x86_64.tar.gz"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Mango-*-linux-x86_64.tar.gz
+
+  build-windows:
+    name: Windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone hone-editor dependency
+        run: |
+          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+        env:
+          HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest perry version
+        id: perry-version
+        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+      - name: Cache perry binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/perry
+          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
+
+      - name: Install perry
+        run: |
+          if ! command -v perry &> /dev/null; then
+            cargo install perry
+          fi
+
+      - name: Set build number
+        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+
+      - name: Decode signing credentials
+        run: |
+          echo "${{ secrets.GCLOUD_KMS_CERT }}" | base64 -d > /tmp/skelpo_codesign.crt
+          echo "${{ secrets.GCLOUD_SERVICE_ACCOUNT }}" | base64 -d > /tmp/gcloud-codesign.json
+
+      - name: Inject credential paths into perry.toml
+        run: |
+          sed -i '/^\[windows\]/a gcloud_kms_cert = "/tmp/skelpo_codesign.crt"' perry.toml
+          sed -i '/^\[windows\]/a gcloud_service_account = "/tmp/gcloud-codesign.json"' perry.toml
+
+      - name: Publish Windows
+        run: perry publish windows
+
+      - name: Rename and upload artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mv dist/Mango-*.exe "dist/Mango-${VERSION}-windows-setup.exe"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Mango-*-windows-setup.exe
+
+  build-ios:
+    name: iOS (TestFlight)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone hone-editor dependency
+        run: |
+          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+        env:
+          HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest perry version
+        id: perry-version
+        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+      - name: Cache perry binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/perry
+          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
+
+      - name: Install perry
+        run: |
+          if ! command -v perry &> /dev/null; then
+            cargo install perry
+          fi
+
+      - name: Set build number
+        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+
+      - name: Decode signing credentials
+        run: |
+          echo "${{ secrets.APPLE_IOS_P12 }}" | base64 -d > /tmp/ios_distribution.p12
+          echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 -d > /tmp/perry.mobileprovision
+          echo "${{ secrets.APPLE_P8_KEY }}" | base64 -d > /tmp/appstore_connect.p8
+
+      - name: Inject credential paths into perry.toml
+        run: |
+          sed -i '/^\[ios\]/a certificate = "/tmp/ios_distribution.p12"' perry.toml
+          sed -i '/^\[ios\]/a provisioning_profile = "/tmp/perry.mobileprovision"' perry.toml
+
+      - name: Publish iOS to TestFlight
+        run: perry publish ios
+        env:
+          PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          PERRY_APPLE_P8_KEY_PATH: /tmp/appstore_connect.p8
+
+  build-android:
+    name: Android (Play Store)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone hone-editor dependency
+        run: |
+          git clone "$HONE_EDITOR_REPO" ../hone/hone-editor
+        env:
+          HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest perry version
+        id: perry-version
+        run: echo "version=$(cargo search perry --limit 1 | head -1 | sed 's/.*"\(.*\)".*/\1/')" >> $GITHUB_OUTPUT
+
+      - name: Cache perry binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/perry
+          key: perry-${{ runner.os }}-${{ steps.perry-version.outputs.version }}
+
+      - name: Install perry
+        run: |
+          if ! command -v perry &> /dev/null; then
+            cargo install perry
+          fi
+
+      - name: Set build number
+        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+
+      - name: Decode signing credentials
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > /tmp/mango.keystore
+          echo "${{ secrets.GOOGLE_PLAY_KEY_JSON }}" | base64 -d > /tmp/googleplay.json
+
+      - name: Inject credential paths into perry.toml
+        run: |
+          sed -i '/^\[android\]/a keystore = "/tmp/mango.keystore"' perry.toml
+          sed -i '/^\[android\]/a google_play_key = "/tmp/googleplay.json"' perry.toml
+
+      - name: Publish Android to Play Store
+        run: perry publish android
+        env:
+          PERRY_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

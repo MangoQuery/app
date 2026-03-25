@@ -18,6 +18,8 @@ import { MongoClient } from 'mongodb';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
 import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
 import { trackAppLaunch, trackConnect, trackQuery } from './data/telemetry';
+import { parallelMap, spawn } from 'perry/thread';
+import { prettyPrintJson, extractIdShort, extractFields, processDocForDisplay } from './data/json-utils';
 
 // --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android, 3=Windows, 4=Linux, 5=Web) ---
 declare const __platform__: number;
@@ -161,41 +163,6 @@ let collNames: string[] = [];
 
 // --- Helpers ---
 
-// Manual JSON pretty-printer (Perry's JSON.stringify ignores indent param)
-function prettyPrintJson(json: string): string {
-  let out = '';
-  let indent = 0;
-  let inString = false;
-  for (let i = 0; i < json.length; i++) {
-    const ch = json[i];
-    if (inString) {
-      out = out + ch;
-      if (ch === '"' && json[i - 1] !== '\\') inString = false;
-      continue;
-    }
-    if (ch === '"') {
-      inString = true;
-      out = out + ch;
-    } else if (ch === '{' || ch === '[') {
-      out = out + ch + '\n';
-      indent = indent + 2;
-      for (let s = 0; s < indent; s++) out = out + ' ';
-    } else if (ch === '}' || ch === ']') {
-      out = out + '\n';
-      indent = indent - 2;
-      for (let s = 0; s < indent; s++) out = out + ' ';
-      out = out + ch;
-    } else if (ch === ',') {
-      out = out + ',\n';
-      for (let s = 0; s < indent; s++) out = out + ' ';
-    } else if (ch === ':') {
-      out = out + ': ';
-    } else if (ch !== ' ' && ch !== '\n' && ch !== '\r' && ch !== '\t') {
-      out = out + ch;
-    }
-  }
-  return out;
-}
 
 // Make a styled label
 function makeLabel(text: string, size: number, bold: boolean): any {
@@ -285,97 +252,6 @@ function maskPassword(uri: string): string {
   return scheme + user + ':••••••' + hostPart;
 }
 
-// Extract a short display _id from a doc JSON string
-function extractIdShort(docJson: string): string {
-  const idKey = '"$oid":"';
-  const oidStart = docJson.indexOf(idKey);
-  if (oidStart >= 0) {
-    const valStart = oidStart + idKey.length;
-    const valEnd = docJson.indexOf('"', valStart);
-    if (valEnd > 0) {
-      const full = docJson.substring(valStart, valEnd);
-      // Show first 4 and last 4 chars
-      if (full.length > 10) {
-        return full.substring(0, 6) + '...' + full.substring(full.length - 4);
-      }
-      return full;
-    }
-  }
-  // Fallback: try simple string _id
-  const simpleKey = '"_id":"';
-  const simpleStart = docJson.indexOf(simpleKey);
-  if (simpleStart >= 0) {
-    const valStart = simpleStart + simpleKey.length;
-    const valEnd = docJson.indexOf('"', valStart);
-    if (valEnd > 0) return docJson.substring(valStart, valEnd);
-  }
-  return '?';
-}
-
-// Extract top-level fields from JSON string for display
-// Returns array of [key, value] pairs (both as strings)
-function extractFields(docJson: string): string[][] {
-  const fields: string[][] = [];
-  let i = 1; // skip opening {
-  while (i < docJson.length) {
-    // Skip whitespace
-    while (i < docJson.length && (docJson[i] === ' ' || docJson[i] === ',')) i = i + 1;
-    if (docJson[i] === '}' || i >= docJson.length) break;
-
-    // Read key (expect "key":)
-    if (docJson[i] !== '"') break;
-    const keyStart = i + 1;
-    i = i + 1;
-    while (i < docJson.length && docJson[i] !== '"') i = i + 1;
-    const key = docJson.substring(keyStart, i);
-    i = i + 1; // skip closing "
-    if (docJson[i] === ':') i = i + 1; // skip :
-
-    // Read value
-    let value = '';
-    if (docJson[i] === '"') {
-      // String value
-      const valStart = i + 1;
-      i = i + 1;
-      while (i < docJson.length && docJson[i] !== '"') {
-        if (docJson[i] === '\\') i = i + 1; // skip escaped char
-        i = i + 1;
-      }
-      value = docJson.substring(valStart, i);
-      i = i + 1; // skip closing "
-    } else if (docJson[i] === '{') {
-      // Object value — find matching }
-      const valStart = i;
-      let depth = 0;
-      while (i < docJson.length) {
-        if (docJson[i] === '{') depth = depth + 1;
-        if (docJson[i] === '}') depth = depth - 1;
-        i = i + 1;
-        if (depth === 0) break;
-      }
-      value = docJson.substring(valStart, i);
-    } else if (docJson[i] === '[') {
-      // Array value — find matching ]
-      const valStart = i;
-      let depth = 0;
-      while (i < docJson.length) {
-        if (docJson[i] === '[') depth = depth + 1;
-        if (docJson[i] === ']') depth = depth - 1;
-        i = i + 1;
-        if (depth === 0) break;
-      }
-      value = docJson.substring(valStart, i);
-    } else {
-      // Number, bool, null
-      const valStart = i;
-      while (i < docJson.length && docJson[i] !== ',' && docJson[i] !== '}') i = i + 1;
-      value = docJson.substring(valStart, i);
-    }
-
-    fields.push([key, value]);
-  }
-  return fields;
-}
 
 // --- Web MongoDB proxy (inline — only compiled for web target) ---
 let _ws: any = null;
@@ -1066,15 +942,24 @@ const queryBtn = Button('Run Query', async () => {
 });
 
 // --- Edit view ---
-function showEditView(docJson: string): void {
-  // Hide browser body, show edit container (sibling in HStack)
+async function showEditView(docJson: string): Promise<void> {
+  // Hide browser body, show edit container with loading state
   widgetSetHidden(browserBody, 1);
   widgetClearChildren(editContainer);
   widgetSetHidden(editContainer, 0);
 
+  const loadingLabel = makeMuted('Formatting document...', 13);
+  widgetAddChild(editContainer, loadingLabel);
+
   const idFilter = extractIdFilter(docJson);
   const editableJson = removeIdFromJson(docJson);
   const idShort = extractIdShort(docJson);
+
+  // Pretty-print on background thread to keep UI responsive
+  const prettyJson = await spawn(() => prettyPrintJson(editableJson));
+
+  // Build the edit UI now that formatting is done
+  widgetClearChildren(editContainer);
 
   // Header
   const editHeader = HStack(8, [
@@ -1084,9 +969,6 @@ function showEditView(docJson: string): void {
   ]);
 
   const fieldLabel = makeSecondary('Document JSON (without _id)', 11);
-
-  // Pretty-print the JSON for editing
-  const prettyJson = prettyPrintJson(editableJson);
 
   const jsonEditor = new HoneCodeEditorWidget(600, 200, {
     content: prettyJson,
@@ -1204,12 +1086,23 @@ function displayDocs(jsonStr: string): void {
     return;
   }
 
-  // Document cards
-  for (let i = 0; i < docArray.length; i++) {
-    const doc = docArray[i];
-    const docJsonStr = JSON.stringify(doc);
-    const idShort = extractIdShort(docJsonStr);
-    const fields = extractFields(docJsonStr);
+  // Pre-process documents (parallel for large result sets, sequential for small)
+  let processed: any[];
+  if (docArray.length > 10) {
+    processed = parallelMap(docArray, processDocForDisplay);
+  } else {
+    processed = [];
+    for (let p = 0; p < docArray.length; p++) {
+      processed.push(processDocForDisplay(docArray[p]));
+    }
+  }
+
+  // Document cards (UI construction — main thread only)
+  for (let i = 0; i < processed.length; i++) {
+    const item = processed[i] as any;
+    const docJsonStr: string = item.json;
+    const idShort: string = item.id;
+    const fields: string[][] = item.fields;
 
     const card = VStack(0, []);
     widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
@@ -1219,7 +1112,7 @@ function displayDocs(jsonStr: string): void {
     // Header: _id + delete/edit buttons
     const idLabel = makeMonoMuted(idShort, 10);
 
-    const editBtn = Button('Edit', () => { showEditView(docJsonStr); });
+    const editBtn = Button('Edit', async () => { await showEditView(docJsonStr); });
     buttonSetBordered(editBtn, 0);
     buttonSetTextColor(editBtn, moR, moG, moB, 1.0);
 

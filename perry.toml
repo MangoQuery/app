@@ -1,8 +1,14 @@
-[android]
-distribute = "playstore"
-google_play_key = "/Users/amlug/projects/android-data/googleplay.json"
-key_alias = "key0"
-keystore = "/Users/amlug/projects/android-data/mango.keystore"
+[project]
+build_number = 0
+entry = "src/app.ts"
+name = "Mango"
+
+[project.icons]
+source = "assets/icon.png"
+
+[build]
+opt_level = 2
+out_dir = "dist"
 
 [audit]
 ignore = [
@@ -10,36 +16,29 @@ ignore = [
     "sql-injection",
 ]
 
-[build]
-opt_level = 2
-out_dir = "dist"
-
-[ios]
-bundle_id = "com.skelpo.mango"
-certificate = "/Users/amlug/.perry/distribution.p12"
-distribute = "testflight"
-encryption_exempt = true
-provisioning_profile = "/Users/amlug/.perry/perry.mobileprovision"
-signing_identity = "Apple Distribution: Skelpo GmbH (K6UW5YV9F7)"
-
 [macos]
 bundle_id = "com.skelpo.mango"
-certificate = "/Users/amlug/.perry/macos_appstore.p12"
 distribute = "both"
 encryption_exempt = true
 entitlements = [
     "com.apple.security.app-sandbox",
     "com.apple.security.network.client",
 ]
-installer_certificate = "/Users/amlug/.perry/macos_installer.p12"
-notarize_certificate = "/Users/amlug/.perry/macos_devid.p12"
 notarize_signing_identity = "Developer ID Application: Skelpo GmbH"
 signing_identity = "Mac App Distribution: Skelpo GmbH"
 
-[project]
-build_number = 54
-entry = "src/app.ts"
-name = "Mango"
+[ios]
+bundle_id = "com.skelpo.mango"
+distribute = "testflight"
+encryption_exempt = true
+signing_identity = "Apple Distribution: Skelpo GmbH (K6UW5YV9F7)"
 
-[project.icons]
-source = "assets/icon.png"
+[android]
+distribute = "playstore"
+key_alias = "key0"
+
+[linux]
+format = "tarball"
+
+[windows]
+gcloud_kms_key = "projects/skelpo/locations/europe-west3/keyRings/code-signing-eu/cryptoKeys/skelpo-codesign/cryptoKeyVersions/1"

@@ -23,7 +23,7 @@ function trackEvent(event: string, dims: string): void {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Chirp-Key': API_KEY },
       body: body,
-    } as any).catch(() => {});
+    }).catch(() => {});
   } catch (_e) {
     // Telemetry must never crash the app
   }

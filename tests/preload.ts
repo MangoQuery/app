@@ -66,6 +66,16 @@ plugin({
       loader: 'object',
     }));
 
+    // Mock 'perry/thread' — run everything single-threaded in tests
+    build.module('perry/thread', () => ({
+      exports: {
+        parallelMap: (arr: any[], fn: (item: any) => any) => arr.map(fn),
+        parallelFilter: (arr: any[], fn: (item: any) => boolean) => arr.filter(fn),
+        spawn: (fn: () => any) => Promise.resolve(fn()),
+      },
+      loader: 'object',
+    }));
+
     // No mock for 'mongodb' — use the real npm package for integration tests
   },
 });
