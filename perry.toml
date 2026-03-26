@@ -1,5 +1,5 @@
 [project]
-build_number = 0
+build_number = 1
 entry = "src/app.ts"
 name = "Mango"
 
@@ -28,7 +28,7 @@ entitlements = [
     "com.apple.security.network.client",
 ]
 notarize_signing_identity = "Developer ID Application: Skelpo GmbH"
-signing_identity = "Mac App Distribution: Skelpo GmbH"
+signing_identity = "3rd Party Mac Developer Application: Skelpo GmbH (K6UW5YV9F7)"
 
 [ios]
 bundle_id = "com.skelpo.mango"
