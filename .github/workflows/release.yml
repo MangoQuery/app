@@ -42,8 +42,12 @@ jobs:
         run: |
           echo "${{ secrets.APPLE_APPSTORE_P12 }}" | base64 -d > /tmp/macos_appstore.p12
           echo "${{ secrets.APPLE_INSTALLER_P12 }}" | base64 -d > /tmp/macos_installer.p12
-          echo "${{ secrets.APPLE_DEVID_P12_PART1 }}${{ secrets.APPLE_DEVID_P12_PART2 }}" | base64 -d > /tmp/macos_devid.p12
+          printf '%s' "$DEVID_PART1" "$DEVID_PART2" | base64 -d > /tmp/macos_devid.p12
+          echo "DevID p12 size: $(wc -c < /tmp/macos_devid.p12) bytes (expected ~43839)"
           echo "${{ secrets.APPLE_P8_KEY }}" | base64 -d > /tmp/appstore_connect.p8
+        env:
+          DEVID_PART1: ${{ secrets.APPLE_DEVID_P12_PART1 }}
+          DEVID_PART2: ${{ secrets.APPLE_DEVID_P12_PART2 }}
 
       - name: Inject credential paths into perry.toml
         run: |
