@@ -60,7 +60,7 @@ jobs:
             --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
           PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-          PERRY_APPLE_NOTARIZE_CERTIFICATE_PASSWORD: ""
+          PERRY_APPLE_NOTARIZE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
@@ -213,7 +213,7 @@ jobs:
             --apple-issuer-id "$PERRY_APPLE_ISSUER_ID" \
             --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
-          PERRY_APPLE_CERT_PASSWORD: ""
+          PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
