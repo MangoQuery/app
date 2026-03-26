@@ -53,13 +53,14 @@ jobs:
       - name: Publish macOS
         run: |
           perry publish macos \
+            --certificate /tmp/macos_appstore.p12 \
             --apple-p8-key /tmp/appstore_connect.p8 \
             --apple-key-id "$PERRY_APPLE_KEY_ID" \
             --apple-issuer-id "$PERRY_APPLE_ISSUER_ID" \
             --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
           PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-          PERRY_APPLE_NOTARIZE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_NOTARIZE_CERT_PASSWORD }}
+          PERRY_APPLE_NOTARIZE_CERTIFICATE_PASSWORD: ""
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
@@ -205,16 +206,17 @@ jobs:
       - name: Publish iOS to TestFlight
         run: |
           perry publish ios \
+            --certificate /tmp/ios_distribution.p12 \
+            --provisioning-profile /tmp/perry.mobileprovision \
             --apple-p8-key /tmp/appstore_connect.p8 \
             --apple-key-id "$PERRY_APPLE_KEY_ID" \
             --apple-issuer-id "$PERRY_APPLE_ISSUER_ID" \
             --apple-team-id "$PERRY_APPLE_TEAM_ID"
         env:
-          PERRY_APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PERRY_APPLE_CERT_PASSWORD: ""
           PERRY_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PERRY_APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
           PERRY_APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
-          PERRY_APPLE_P8_KEY_PATH: /tmp/appstore_connect.p8
 
   build-android:
     name: Android (Play Store)
