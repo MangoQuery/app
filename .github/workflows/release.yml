@@ -39,7 +39,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
-          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+          BUILD_NUM=$(( ${{ github.run_number }} + 100 ))
+          sed -i "s/^build_number = .*/build_number = $BUILD_NUM/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -106,7 +107,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
-          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+          BUILD_NUM=$(( ${{ github.run_number }} + 100 ))
+          sed -i "s/^build_number = .*/build_number = $BUILD_NUM/" perry.toml
 
       - name: Publish Linux
         run: perry publish linux
@@ -149,7 +151,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
-          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+          BUILD_NUM=$(( ${{ github.run_number }} + 100 ))
+          sed -i "s/^build_number = .*/build_number = $BUILD_NUM/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -202,7 +205,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
-          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+          BUILD_NUM=$(( ${{ github.run_number }} + 100 ))
+          sed -i "s/^build_number = .*/build_number = $BUILD_NUM/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -258,7 +262,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
-          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+          BUILD_NUM=$(( ${{ github.run_number }} + 100 ))
+          sed -i "s/^build_number = .*/build_number = $BUILD_NUM/" perry.toml
 
       - name: Decode signing credentials
         run: |
