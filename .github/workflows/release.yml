@@ -35,8 +35,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Set build number
-        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+      - name: Set version and build number
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
+          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -99,8 +102,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Set build number
-        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+      - name: Set version and build number
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
+          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
       - name: Publish Linux
         run: perry publish linux
@@ -139,8 +145,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Set build number
-        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+      - name: Set version and build number
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
+          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -189,8 +198,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Set build number
-        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+      - name: Set version and build number
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
+          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
       - name: Decode signing credentials
         run: |
@@ -242,8 +254,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Set build number
-        run: sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
+      - name: Set version and build number
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" perry.toml
+          sed -i "s/^build_number = .*/build_number = ${{ github.run_number }}/" perry.toml
 
       - name: Decode signing credentials
         run: |

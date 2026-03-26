@@ -2,6 +2,7 @@
 build_number = 1
 entry = "src/app.ts"
 name = "Mango"
+version = "1.0.0"
 
 [project.icons]
 source = "assets/icon.png"
