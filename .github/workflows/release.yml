@@ -72,7 +72,14 @@ jobs:
       - name: Rename and upload artifact
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          mv dist/Mango-*.dmg "dist/Mango-${VERSION}-macos.dmg"
+          ls -la dist/
+          DMG=$(find dist -name "Mango-*.dmg" -size +0c | head -1)
+          if [ -z "$DMG" ]; then
+            echo "ERROR: No DMG artifact found in dist/"
+            exit 1
+          fi
+          mv "$DMG" "dist/Mango-${VERSION}-macos.dmg"
+          ls -la "dist/Mango-${VERSION}-macos.dmg"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
