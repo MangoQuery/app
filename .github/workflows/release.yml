@@ -20,7 +20,7 @@ jobs:
       - name: Clone hone-editor dependency
         run: |
           git clone --depth 1 "$HONE_EDITOR_REPO" ../hone/hone-editor
-          rm -rf ../hone/hone-editor/native ../hone/hone-editor/examples ../hone/hone-editor/.git ../hone/hone-editor/node_modules
+          rm -rf ../hone/hone-editor/.git ../hone/hone-editor/node_modules ../hone/hone-editor/examples
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -83,7 +83,7 @@ jobs:
       - name: Clone hone-editor dependency
         run: |
           git clone --depth 1 "$HONE_EDITOR_REPO" ../hone/hone-editor
-          rm -rf ../hone/hone-editor/native ../hone/hone-editor/examples ../hone/hone-editor/.git ../hone/hone-editor/node_modules
+          rm -rf ../hone/hone-editor/.git ../hone/hone-editor/node_modules ../hone/hone-editor/examples
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -123,7 +123,7 @@ jobs:
       - name: Clone hone-editor dependency
         run: |
           git clone --depth 1 "$HONE_EDITOR_REPO" ../hone/hone-editor
-          rm -rf ../hone/hone-editor/native ../hone/hone-editor/examples ../hone/hone-editor/.git ../hone/hone-editor/node_modules
+          rm -rf ../hone/hone-editor/.git ../hone/hone-editor/node_modules ../hone/hone-editor/examples
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -173,7 +173,7 @@ jobs:
       - name: Clone hone-editor dependency
         run: |
           git clone --depth 1 "$HONE_EDITOR_REPO" ../hone/hone-editor
-          rm -rf ../hone/hone-editor/native ../hone/hone-editor/examples ../hone/hone-editor/.git ../hone/hone-editor/node_modules
+          rm -rf ../hone/hone-editor/.git ../hone/hone-editor/node_modules ../hone/hone-editor/examples
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
@@ -225,7 +225,7 @@ jobs:
       - name: Clone hone-editor dependency
         run: |
           git clone --depth 1 "$HONE_EDITOR_REPO" ../hone/hone-editor
-          rm -rf ../hone/hone-editor/native ../hone/hone-editor/examples ../hone/hone-editor/.git ../hone/hone-editor/node_modules
+          rm -rf ../hone/hone-editor/.git ../hone/hone-editor/node_modules ../hone/hone-editor/examples
         env:
           HONE_EDITOR_REPO: ${{ secrets.HONE_EDITOR_REPO }}
 
