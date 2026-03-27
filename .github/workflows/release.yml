@@ -9,6 +9,7 @@ permissions:
 
 env:
   PERRY_LICENSE_KEY: ${{ secrets.PERRY_LICENSE_KEY }}
+  PERRY_API_TOKEN: ${{ secrets.PERRY_API_TOKEN }}
 
 jobs:
   build-macos:
@@ -34,6 +35,12 @@ jobs:
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Configure perry
+        run: |
+          mkdir -p ~/.perry
+          printf 'license_key = "%s"\nserver = "https://hub.perryts.com"\napi_token = "%s"\n' \
+            "$PERRY_LICENSE_KEY" "$PERRY_API_TOKEN" > ~/.perry/config.toml
 
       - name: Set version and build number
         run: |
@@ -113,6 +120,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Configure perry
+        run: |
+          mkdir -p ~/.perry
+          printf 'license_key = "%s"\nserver = "https://hub.perryts.com"\napi_token = "%s"\n' \
+            "$PERRY_LICENSE_KEY" "$PERRY_API_TOKEN" > ~/.perry/config.toml
+
       - name: Set version and build number
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -156,6 +169,12 @@ jobs:
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Configure perry
+        run: |
+          mkdir -p ~/.perry
+          printf 'license_key = "%s"\nserver = "https://hub.perryts.com"\napi_token = "%s"\n' \
+            "$PERRY_LICENSE_KEY" "$PERRY_API_TOKEN" > ~/.perry/config.toml
 
       - name: Set version and build number
         run: |
@@ -210,6 +229,12 @@ jobs:
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Configure perry
+        run: |
+          mkdir -p ~/.perry
+          printf 'license_key = "%s"\nserver = "https://hub.perryts.com"\napi_token = "%s"\n' \
+            "$PERRY_LICENSE_KEY" "$PERRY_API_TOKEN" > ~/.perry/config.toml
 
       - name: Set version and build number
         run: |
@@ -267,6 +292,12 @@ jobs:
           perry --version
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Configure perry
+        run: |
+          mkdir -p ~/.perry
+          printf 'license_key = "%s"\nserver = "https://hub.perryts.com"\napi_token = "%s"\n' \
+            "$PERRY_LICENSE_KEY" "$PERRY_API_TOKEN" > ~/.perry/config.toml
 
       - name: Set version and build number
         run: |
