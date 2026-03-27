@@ -795,7 +795,7 @@ function showConnectionForm(): void {
 refreshConnectionList();
 
 // --- Hero banner (full-width via ScrollView Width alignment) ---
-const heroLogo = ImageFile('logo/mango-app-icon-128.png');
+const heroLogo = ImageFile('assets/mango-app-icon-128.png');
 widgetSetWidth(heroLogo, mobile ? 40 : 56);
 widgetSetHeight(heroLogo, mobile ? 40 : 56);
 
@@ -899,7 +899,7 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
 });
 
 // Browser toolbar — logo + connection name + status
-const browserLogo = ImageFile('logo/mango-app-icon-128.png');
+const browserLogo = ImageFile('assets/mango-app-icon-128.png');
 widgetSetWidth(browserLogo, 24);
 widgetSetHeight(browserLogo, 24);
 
@@ -1452,7 +1452,7 @@ function setAnalyticsEnabled(enabled: boolean): void {
   saveState('analyticsEnabled', enabled ? '1' : '0');
 }
 
-const infoLogo = ImageFile('logo/mango-app-icon-128.png');
+const infoLogo = ImageFile('assets/mango-app-icon-128.png');
 widgetSetWidth(infoLogo, 80);
 widgetSetHeight(infoLogo, 80);
 
@@ -1688,6 +1688,6 @@ App({
   title: 'Mango',
   width: 1100,
   height: 750,
-  icon: 'logo/mango-app-icon-512.png',
+  icon: 'assets/mango-app-icon-512.png',
   body: appBody,
 });
