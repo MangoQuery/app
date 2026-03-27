@@ -44,6 +44,14 @@ plugin({
       loader: 'object',
     }));
 
+    // Mock 'perry/i18n' — pass through strings unchanged in tests
+    build.module('perry/i18n', () => ({
+      exports: {
+        t: (key: string) => key,
+      },
+      loader: 'object',
+    }));
+
     // Mock 'perry/system'
     build.module('perry/system', () => ({
       exports: {

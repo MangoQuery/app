@@ -3,7 +3,7 @@ import {
   TextField, TextArea, ScrollView, ImageFile,
   textSetFontSize, textSetFontWeight, textSetColor, textSetString,
   textSetFontFamily,
-  buttonSetBordered, buttonSetTextColor,
+  buttonSetBordered, buttonSetTextColor, buttonSetTitle,
   widgetAddChild, widgetClearChildren, widgetSetHidden,
   widgetSetBackgroundColor, widgetSetBackgroundGradient,
   widgetMatchParentWidth, widgetMatchParentHeight, widgetSetHugging, widgetSetHeight, widgetSetWidth,
@@ -12,8 +12,12 @@ import {
   scrollviewSetChild,
   textfieldSetString, textfieldGetString,
   textareaSetString, textareaGetString,
+  menuCreate, menuAddItem, menuAddSeparator, menuAddSubmenu,
+  menuBarCreate, menuBarAddMenu, menuBarAttach,
+  Window,
 } from 'perry/ui';
 import { isDarkMode, keychainSave, keychainGet, keychainDelete, getDeviceIdiom } from 'perry/system';
+import { t } from 'perry/i18n';
 import { MongoClient } from 'mongodb';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
 import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
@@ -120,7 +124,7 @@ function loadConnections(): void {
     const p: any = profiles[i];
     if (!p || !p.id) continue; // Skip invalid entries
     connectionIds.push(p.id);
-    connectionNames.push(p.name || 'Untitled');
+    connectionNames.push(p.name || t('Untitled'));
     connectionHosts.push(p.host || 'localhost');
     connectionPorts.push(String(p.port || 27017));
     // URI from SQLite, fall back to Keychain for backward compat (not on web)
@@ -166,44 +170,44 @@ let collNames: string[] = [];
 
 // Make a styled label
 function makeLabel(text: string, size: number, bold: boolean): any {
-  const t = Text(text);
-  textSetFontSize(t, size);
-  textSetFontFamily(t, uiFont);
-  if (bold) textSetFontWeight(t, size, 0.5);
-  textSetColor(t, txR, txG, txB, 1.0);
-  return t;
+  const w = Text(text);
+  textSetFontSize(w, size);
+  textSetFontFamily(w, uiFont);
+  if (bold) textSetFontWeight(w, size, 0.5);
+  textSetColor(w, txR, txG, txB, 1.0);
+  return w;
 }
 
 function makeMuted(text: string, size: number): any {
-  const t = Text(text);
-  textSetFontSize(t, size);
-  textSetFontFamily(t, uiFont);
-  textSetColor(t, tmR, tmG, tmB, 1.0);
-  return t;
+  const w = Text(text);
+  textSetFontSize(w, size);
+  textSetFontFamily(w, uiFont);
+  textSetColor(w, tmR, tmG, tmB, 1.0);
+  return w;
 }
 
 function makeSecondary(text: string, size: number): any {
-  const t = Text(text);
-  textSetFontSize(t, size);
-  textSetFontFamily(t, uiFont);
-  textSetColor(t, tsR, tsG, tsB, 1.0);
-  return t;
+  const w = Text(text);
+  textSetFontSize(w, size);
+  textSetFontFamily(w, uiFont);
+  textSetColor(w, tsR, tsG, tsB, 1.0);
+  return w;
 }
 
 function makeMono(text: string, size: number): any {
-  const t = Text(text);
-  textSetFontSize(t, size);
-  textSetFontFamily(t, monoFont);
-  textSetColor(t, txR, txG, txB, 1.0);
-  return t;
+  const w = Text(text);
+  textSetFontSize(w, size);
+  textSetFontFamily(w, monoFont);
+  textSetColor(w, txR, txG, txB, 1.0);
+  return w;
 }
 
 function makeMonoMuted(text: string, size: number): any {
-  const t = Text(text);
-  textSetFontSize(t, size);
-  textSetFontFamily(t, monoFont);
-  textSetColor(t, tmR, tmG, tmB, 1.0);
-  return t;
+  const w = Text(text);
+  textSetFontSize(w, size);
+  textSetFontFamily(w, monoFont);
+  textSetColor(w, tmR, tmG, tmB, 1.0);
+  return w;
 }
 
 function makeCard(children: any[], gap: number): any {
@@ -346,7 +350,7 @@ async function updateDocument(dbName: string, collName: string, filter: string, 
     const coll = db.collection(collName);
     return await coll.updateOne(filter, update);
   } catch (e: any) {
-    showStatus('Update failed: ' + (e.message || 'unknown error'), true);
+    showStatus(t('Update failed') + ': ' + (e.message || 'unknown error'), true);
     return 0;
   }
 }
@@ -359,7 +363,7 @@ async function deleteDocument(dbName: string, collName: string, filter: string):
     const coll = db.collection(collName);
     return await coll.deleteOne(filter);
   } catch (e: any) {
-    showStatus('Delete failed: ' + (e.message || 'unknown error'), true);
+    showStatus(t('Delete failed') + ': ' + (e.message || 'unknown error'), true);
     return 0;
   }
 }
@@ -375,7 +379,7 @@ async function listDatabases(): Promise<string[]> {
     }
     return [];
   } catch (e: any) {
-    showStatus('Failed to list databases: ' + (e.message || 'unknown error'), true);
+    showStatus(t('Failed to list databases') + ': ' + (e.message || 'unknown error'), true);
     return [];
   }
 }
@@ -392,7 +396,7 @@ async function listCollections(dbName: string): Promise<string[]> {
     }
     return [];
   } catch (e: any) {
-    showStatus('Failed to list collections: ' + (e.message || 'unknown error'), true);
+    showStatus(t('Failed to list collections') + ': ' + (e.message || 'unknown error'), true);
     return [];
   }
 }
@@ -469,10 +473,10 @@ if (isWeb) {
   _wsOnStatus = (up: boolean) => {
     webServerUp = up;
     if (up) {
-      textSetString(webStatusText, 'Connected to Mango Server');
+      textSetString(webStatusText, t('Connected to Mango Server'));
       textSetColor(webStatusText, sgR, sgG, sgB, 1.0);
     } else {
-      textSetString(webStatusText, 'Server unavailable \u2014 run mango-serve');
+      textSetString(webStatusText, t('Server unavailable \u2014 run mango-serve'));
       textSetColor(webStatusText, erR, erG, erB, 1.0);
     }
   };
@@ -563,7 +567,7 @@ function refreshConnectionList(): void {
     setCornerRadius(accentBar, 3);
     setPadding(accentBar, 20, 3, 20, 3);
 
-    const nameText = makeLabel(maskPassword(connectionNames[i]) || 'Untitled', 15, true);
+    const nameText = makeLabel(maskPassword(connectionNames[i]) || t('Untitled'), 15, true);
 
     const rawUri = connectionUris[i];
     const hostPort = rawUri ? maskPassword(rawUri) : `${connectionHosts[i]}:${connectionPorts[i]}`;
@@ -571,12 +575,13 @@ function refreshConnectionList(): void {
 
     const info = VStack(3, [nameText, detailText]);
 
+    let connecting = false;
     const connectBtn = Button('Connect', async () => {
+      if (connecting) return;
+      connecting = true;
+      buttonSetTitle(connectBtn, t('Connecting...'));
       const uri = connectionUris[connIdx] || `mongodb://${connectionHosts[connIdx]}:${connectionPorts[connIdx]}`;
-      showStatus('Connecting...', false);
-      textSetString(nameText, connectionNames[connIdx] + ' — connecting...');
       const ok = await connectToMongo(uri);
-      textSetString(nameText, connectionNames[connIdx] || 'Untitled');
       if (ok) {
         widgetSetHidden(statusText, 1);
         currentConnName = connectionNames[connIdx] || 'Server';
@@ -586,12 +591,15 @@ function refreshConnectionList(): void {
         saveState('lastConnName', currentConnName);
         showScreen(1);
         await loadDatabases();
-        // On mobile, auto-show sidebar after connecting so user sees databases
         if (mobile && !sidebarVisible) { showSidebar(); }
       } else {
-        showStatus('Connection failed: ' + lastConnError, true);
+        showStatus(t('Connection failed') + ': ' + lastConnError, true);
       }
+      buttonSetTitle(connectBtn, t('Connect'));
+      connecting = false;
     });
+    buttonSetBordered(connectBtn, 0);
+    buttonSetTextColor(connectBtn, moR, moG, moB, 1.0);
 
     const connId = connectionIds[i];
     const confirmLabel = Text('');
@@ -618,8 +626,8 @@ function refreshConnectionList(): void {
     buttonSetTextColor(confirmNo, tsR, tsG, tsB, 1.0);
     widgetSetHidden(confirmNo, 1);
 
-    const deleteBtn = makeDangerBtn('Remove', () => {
-      textSetString(confirmLabel, 'Remove this connection?');
+    const deleteBtn = makeDangerBtn(t('Remove'), () => {
+      textSetString(confirmLabel, t('Remove this connection?'));
       widgetSetHidden(confirmLabel, 0);
       widgetSetHidden(confirmYes, 0);
       widgetSetHidden(confirmNo, 0);
@@ -645,6 +653,7 @@ function refreshConnectionList(): void {
 
   // Add new connection button
   const addMoreBtn = Button('+ New Connection', () => { showConnectionForm(); });
+  buttonSetBordered(addMoreBtn, 0);
   buttonSetTextColor(addMoreBtn, moR, moG, moB, 1.0);
   widgetAddChild(connListContainer, addMoreBtn);
 }
@@ -665,29 +674,29 @@ function showConnectionForm(): void {
 
   const title = makeLabel('New Connection', 18, true);
 
-  const nameLabel = makeSecondary('Name', 11);
+  const nameLabel = makeSecondary(t('Name'), 11);
   const nameField = TextField('e.g. Production, Local dev...', (val: string) => { formName = val; });
 
-  const hostLabel = makeSecondary('Host', 11);
+  const hostLabel = makeSecondary(t('Host'), 11);
   const hostField = TextField('localhost', (val: string) => { formHost = val || 'localhost'; });
 
-  const portLabel = makeSecondary('Port', 11);
+  const portLabel = makeSecondary(t('Port'), 11);
   const portField = TextField('27017', (val: string) => { formPort = val || '27017'; });
 
-  const userLabel = makeSecondary('Username (optional)', 11);
+  const userLabel = makeSecondary(t('Username (optional)'), 11);
   const userField = TextField('', (val: string) => { formUser = val; });
 
-  const passLabel = makeSecondary('Password (optional)', 11);
+  const passLabel = makeSecondary(t('Password (optional)'), 11);
   const passField = TextField('', (val: string) => { formPass = val; });
 
-  const divLabel = makeMuted('or connect via full URI (overrides above)', 11);
+  const divLabel = makeMuted(t('or connect via full URI (overrides above)'), 11);
 
-  const uriLabel = makeSecondary('Connection String', 11);
+  const uriLabel = makeSecondary(t('Connection String'), 11);
   const uriField = TextField('mongodb+srv://user:pass@cluster.example.com/db', (val: string) => { formUri = val; });
 
   const saveBtn = Button('Save Connection', () => {
     try {
-      const name = textfieldGetString(nameField) || formName || 'Untitled';
+      const name = textfieldGetString(nameField) || formName || t('Untitled');
       const host = textfieldGetString(hostField) || formHost || 'localhost';
       const port = textfieldGetString(portField) || formPort || '27017';
       const user = textfieldGetString(userField) || formUser;
@@ -746,13 +755,13 @@ function showConnectionForm(): void {
       loadConnections();
       refreshConnectionList();
     } catch (e: any) {
-      showStatus('Error saving: ' + (e.message || e), true);
+      showStatus(t('Error saving') + ': ' + (e.message || e), true);
     }
   });
 
   buttonSetTextColor(saveBtn, moR, moG, moB, 1.0);
 
-  const cancelBtn = makeGhostBtn('Cancel', () => {
+  const cancelBtn = makeGhostBtn(t('Cancel'), () => {
     widgetSetHidden(formContainer, 1);
     widgetSetHidden(connListContainer, 0);
   });
@@ -856,7 +865,7 @@ stackSetDistribution(editContainer, 0); // .fill so Spacer absorbs remaining hei
 widgetSetHidden(editContainer, 1);
 
 // Initial placeholder
-const docInfoText = makeMuted('Enter a database and collection, then run a query.', 13);
+const docInfoText = makeMuted(t('Enter a database and collection, then run a query.'), 13);
 widgetAddChild(docsContainer, docInfoText);
 
 // --- Toolbar ---
@@ -866,7 +875,7 @@ textSetFontFamily(connLabel, uiFont);
 textSetFontWeight(connLabel, 11, 0.5);
 textSetColor(connLabel, sgR, sgG, sgB, 1.0);
 
-const disconnectBtn = makeDangerBtn('Disconnect', async () => {
+const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
   if (mongoClient) {
     try { await mongoClient.close(); } catch (e: any) {}
     mongoClient = null;
@@ -912,11 +921,11 @@ widgetSetHidden(breadcrumb, 1);
 async function runQuery(dbName: string, collName: string, filter: string): Promise<void> {
   widgetClearChildren(docsContainer);
   if (!mongoClient) {
-    widgetAddChild(docsContainer, makeMuted('Not connected to MongoDB.', 13));
+    widgetAddChild(docsContainer, makeMuted(t('Not connected to MongoDB.'), 13));
     return;
   }
   if (!dbName || !collName) {
-    widgetAddChild(docsContainer, makeMuted('Enter both database and collection names.', 13));
+    widgetAddChild(docsContainer, makeMuted(t('Enter both database and collection names.'), 13));
     return;
   }
 
@@ -927,7 +936,7 @@ async function runQuery(dbName: string, collName: string, filter: string): Promi
   textSetString(breadcrumb, dbName + '.' + collName);
   widgetSetHidden(breadcrumb, 0);
 
-  widgetAddChild(docsContainer, makeMuted('Querying...', 13));
+  widgetAddChild(docsContainer, makeMuted(t('Querying...'), 13));
 
   trackQuery();
   const result = await queryCollection(dbName, collName, filter);
@@ -948,7 +957,7 @@ async function showEditView(docJson: string): Promise<void> {
   widgetClearChildren(editContainer);
   widgetSetHidden(editContainer, 0);
 
-  const loadingLabel = makeMuted('Formatting document...', 13);
+  const loadingLabel = makeMuted(t('Formatting document...'), 13);
   widgetAddChild(editContainer, loadingLabel);
 
   const idFilter = extractIdFilter(docJson);
@@ -968,7 +977,7 @@ async function showEditView(docJson: string): Promise<void> {
     makeMonoMuted(idShort, 11),
   ]);
 
-  const fieldLabel = makeSecondary('Document JSON (without _id)', 11);
+  const fieldLabel = makeSecondary(t('Document JSON (without _id)'), 11);
 
   const jsonEditor = new HoneCodeEditorWidget(600, 200, {
     content: prettyJson,
@@ -991,17 +1000,17 @@ async function showEditView(docJson: string): Promise<void> {
   widgetMatchParentWidth(jsonEditor.widget);
   widgetMatchParentHeight(jsonEditor.widget);
 
-  const saveBtn = makePrimaryBtn('Save Changes', async () => {
-    showStatus('Saving...', false);
+  const saveBtn = makePrimaryBtn(t('Save Changes'), async () => {
+    showStatus(t('Saving...'), false);
     const editorContent = jsonEditor.content;
     let compactJson = editorContent;
     try { compactJson = JSON.stringify(JSON.parse(editorContent)); } catch (e: any) {
-      showStatus('Invalid JSON: ' + (e.message || 'parse error'), true);
+      showStatus(t('Invalid JSON') + ': ' + (e.message || 'parse error'), true);
       return;
     }
     const updateStr = '{"$set":' + compactJson + '}';
     await updateDocument(activeDbName, activeCollName, idFilter, updateStr);
-    showStatus('Document saved', false);
+    showStatus(t('Document saved'), false);
     // Switch back to doc list
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
@@ -1009,13 +1018,13 @@ async function showEditView(docJson: string): Promise<void> {
     displayDocs(result);
   });
 
-  const deleteBtn = makeDangerBtn('Delete Document', async () => {
-    showStatus('Deleting...', false);
+  const deleteBtn = makeDangerBtn(t('Delete Document'), async () => {
+    showStatus(t('Deleting...'), false);
     const deleted = await deleteDocument(activeDbName, activeCollName, idFilter);
     if (deleted > 0) {
-      showStatus('Document deleted', false);
+      showStatus(t('Document deleted'), false);
     } else {
-      showStatus('Delete failed', true);
+      showStatus(t('Delete failed'), true);
     }
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
@@ -1023,7 +1032,7 @@ async function showEditView(docJson: string): Promise<void> {
     displayDocs(result);
   });
 
-  const backBtn = makeGhostBtn('Back to results', () => {
+  const backBtn = makeGhostBtn(t('Back to results'), () => {
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
   });
@@ -1056,18 +1065,18 @@ function displayDocs(jsonStr: string): void {
   try {
     const parsed = JSON.parse(jsonStr);
     if (parsed.error) {
-      const errCard = makeCard([makeMuted('Error: ' + parsed.error, 13)], 4);
+      const errCard = makeCard([makeMuted(t('Error') + ': ' + parsed.error, 13)], 4);
       widgetAddChild(docsContainer, errCard);
       return;
     }
     docArray = parsed;
   } catch (e: any) {
-    widgetAddChild(docsContainer, makeCard([makeMuted('Failed to parse response', 13)], 4));
+    widgetAddChild(docsContainer, makeCard([makeMuted(t('Failed to parse response'), 13)], 4));
     return;
   }
 
   // Results header
-  const countLabel = Text(`${docArray.length} document${docArray.length === 1 ? '' : 's'}`);
+  const countLabel = Text(docArray.length + ' ' + (docArray.length === 1 ? t('document') : t('documents')));
   textSetFontSize(countLabel, 13);
   textSetFontFamily(countLabel, uiFont);
   textSetFontWeight(countLabel, 13, 0.5);
@@ -1081,7 +1090,7 @@ function displayDocs(jsonStr: string): void {
   widgetAddChild(docsContainer, headerRow);
 
   if (docArray.length === 0) {
-    const emptyCard = makeCard([makeMuted('No documents match the query.', 13)], 4);
+    const emptyCard = makeCard([makeMuted(t('No documents match the query.'), 13)], 4);
     widgetAddChild(docsContainer, emptyCard);
     return;
   }
@@ -1117,32 +1126,32 @@ function displayDocs(jsonStr: string): void {
     buttonSetTextColor(editBtn, moR, moG, moB, 1.0);
 
     // Inline delete with confirmation
-    const delConfirmLabel = makeMuted('Delete this document?', 11);
+    const delConfirmLabel = makeMuted(t('Delete this document?'), 11);
     widgetSetHidden(delConfirmLabel, 1);
 
-    const delConfirmYes = makeDangerBtn('Yes, delete', async () => {
-      textSetString(delConfirmLabel, 'Deleting...');
+    const delConfirmYes = makeDangerBtn(t('Yes, delete'), async () => {
+      textSetString(delConfirmLabel, t('Deleting...'));
       textSetColor(delConfirmLabel, tmR, tmG, tmB, 1.0);
       const idFilter = extractIdFilter(docJsonStr);
       const deleted = await deleteDocument(activeDbName, activeCollName, idFilter);
       if (deleted > 0) {
-        showStatus('Document deleted', false);
+        showStatus(t('Document deleted'), false);
       } else {
-        showStatus('Delete failed', true);
+        showStatus(t('Delete failed'), true);
       }
       const result = await queryCollection(activeDbName, activeCollName, lastQueryFilter);
       displayDocs(result);
     });
     widgetSetHidden(delConfirmYes, 1);
 
-    const delConfirmNo = makeGhostBtn('Cancel', () => {
+    const delConfirmNo = makeGhostBtn(t('Cancel'), () => {
       widgetSetHidden(delConfirmLabel, 1);
       widgetSetHidden(delConfirmYes, 1);
       widgetSetHidden(delConfirmNo, 1);
     });
     widgetSetHidden(delConfirmNo, 1);
 
-    const cardDelBtn = makeDangerBtn('Delete', () => {
+    const cardDelBtn = makeDangerBtn(t('Delete'), () => {
       widgetSetHidden(delConfirmLabel, 0);
       widgetSetHidden(delConfirmYes, 0);
       widgetSetHidden(delConfirmNo, 0);
@@ -1183,7 +1192,7 @@ let sidebarVisible = !mobile;
 async function loadDatabases(): Promise<void> {
   // Show loading in sidebar
   widgetClearChildren(sidebarContainer);
-  const loadingLabel = makeMuted('Loading databases...', 12);
+  const loadingLabel = makeMuted(t('Loading databases...'), 12);
   setPadding(loadingLabel, 8, 12, 8, 12);
   widgetAddChild(sidebarContainer, loadingLabel);
 
@@ -1243,7 +1252,7 @@ function renderSidebar(): void {
   widgetAddChild(sidebarContainer, hdr);
 
   if (sidebarDbNames.length === 0) {
-    const empty = makeMuted('No databases', 12);
+    const empty = makeMuted(t('No databases'), 12);
     setPadding(empty, 4, 12, 4, 12);
     widgetAddChild(sidebarContainer, empty);
     return;
@@ -1285,7 +1294,7 @@ function renderSidebar(): void {
     if (isExpanded) {
       const colls = getCollectionsFor(dbIdx);
       if (colls.length === 0) {
-        const loading = makeMuted('Loading...', 11);
+        const loading = makeMuted(t('Loading...'), 11);
         setPadding(loading, 3, 36, 3, 36);
         widgetAddChild(sidebarContainer, loading);
       } else {
@@ -1306,7 +1315,7 @@ function renderSidebar(): void {
             textfieldSetString(collField, collName);
             // On mobile, close sidebar and show main content
             if (mobile) { hideSidebar(); }
-            showStatus('Loading ' + dbName + '.' + collName + '...', false);
+            showStatus(t('Loading') + ' ' + dbName + '.' + collName + '...', false);
             await runQuery(dbName, collName, '{}');
             widgetSetHidden(statusText, 1);
           });
@@ -1323,7 +1332,7 @@ function renderSidebar(): void {
   }
 
   // Refresh button at bottom
-  const refreshBtn = makeGhostBtn('Refresh', async () => {
+  const refreshBtn = makeGhostBtn(t('Refresh'), async () => {
     await loadDatabases();
   });
   setPadding(refreshBtn, 8, 12, 8, 12);
@@ -1357,16 +1366,18 @@ buttonSetBordered(sidebarToggle, 0);
 buttonSetTextColor(sidebarToggle, moR, moG, moB, 1.0);
 if (!mobile) widgetSetHidden(sidebarToggle, 1);
 
+// About button only shown on mobile toolbar (desktop uses menu bar)
 const browserInfoBtn = Button('About', () => { saveState('previousScreen', '1'); showScreen(2); });
 buttonSetBordered(browserInfoBtn, 0);
 buttonSetTextColor(browserInfoBtn, tmR, tmG, tmB, 1.0);
+if (!mobile) widgetSetHidden(browserInfoBtn, 1);
 
 // Branded toolbar — must use inline array literals (Perry codegen doesn't support variable arrays)
 let toolbarRow: any;
 if (mobile) {
   toolbarRow = HStack(10, [sidebarToggle, Spacer(), connLabel, browserInfoBtn, disconnectBtn]);
 } else {
-  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, browserInfoBtn, disconnectBtn]);
+  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
 }
 const toolbarBox = VStack(0, [toolbarRow]);
 setPadding(toolbarBox, isIOS ? 52 : 12, mobile ? 16 : 24, 12, mobile ? 16 : 24); // iOS/iPad top safe area
@@ -1392,9 +1403,9 @@ if (mobile) {
 }
 
 widgetAddChild(queryCard, queryTitle);
-widgetAddChild(queryCard, makeSecondary('Database . Collection', 10));
+widgetAddChild(queryCard, makeSecondary(t('Database . Collection'), 10));
 widgetAddChild(queryCard, dbColRow);
-widgetAddChild(queryCard, makeSecondary('Filter', 10));
+widgetAddChild(queryCard, makeSecondary(t('Filter'), 10));
 widgetAddChild(queryCard, filterField);
 widgetAddChild(queryCard, HStack(8, [breadcrumb, Spacer(), queryBtn]));
 
@@ -1497,7 +1508,7 @@ const enableWrap = VStack(0, []);
 
 const disableBtn = Button('Disable', () => {
   setAnalyticsEnabled(false);
-  textSetString(analyticsStatusText, 'Disabled');
+  textSetString(analyticsStatusText, t('Disabled'));
   widgetSetHidden(disableWrap, 1);
   widgetSetHidden(enableWrap, 0);
 });
@@ -1507,7 +1518,7 @@ widgetAddChild(disableWrap, disableBtn);
 
 const enableBtn = Button('Enable', () => {
   setAnalyticsEnabled(true);
-  textSetString(analyticsStatusText, 'Enabled');
+  textSetString(analyticsStatusText, t('Enabled'));
   widgetSetHidden(enableWrap, 1);
   widgetSetHidden(disableWrap, 0);
 });
@@ -1525,14 +1536,6 @@ if (mobile) {
 } else {
   analyticsRow = HStack(8, [analyticsLabel, Spacer(), analyticsStatusText, disableWrap, enableWrap]);
 }
-
-const backBtn = Button('< Back', () => {
-  const prev = getState('previousScreen');
-  showScreen(prev === '1' ? 1 : 0);
-});
-buttonSetBordered(backBtn, 0);
-buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
-if (mobile) setPadding(backBtn, 8, 4, 8, 4);
 
 // Header card with centered logo, title, tagline
 const infoLogoRow = HStack(16, [infoLogo, VStack(4, [infoTitle, infoVersion])]);
@@ -1557,39 +1560,64 @@ widgetSetBackgroundColor(infoSettingsCard, sfR, sfG, sfB, 1.0);
 setCornerRadius(infoSettingsCard, 14);
 setPadding(infoSettingsCard, 20, 28, 20, 28);
 
-const backRow = HStack(8, [backBtn, Spacer()]);
-if (mobile) stackSetAlignment(backRow, 0); // Fill — prevent collapse on Android
-const infoBody = VStack(12, [
-  backRow,
-  infoHeaderCard,
-  settingsHeader,
-  infoSettingsCard,
-]);
-const infoPadH = mobile ? 16 : 280;
-setPadding(infoBody, mobile ? 20 : 40, infoPadH, 32, infoPadH);
+if (mobile) {
+  // Mobile: keep inline screen with back button
+  const backBtn = Button('< Back', () => {
+    const prev = getState('previousScreen');
+    showScreen(prev === '1' ? 1 : 0);
+  });
+  buttonSetBordered(backBtn, 0);
+  buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
+  setPadding(backBtn, 8, 4, 8, 4);
 
-// Force cards to fill width
-widgetMatchParentWidth(infoHeaderCard);
-widgetMatchParentWidth(infoSettingsCard);
+  const backRow = HStack(8, [backBtn, Spacer()]);
+  stackSetAlignment(backRow, 0);
+  var infoBody = VStack(12, [
+    backRow,
+    infoHeaderCard,
+    settingsHeader,
+    infoSettingsCard,
+  ]);
+  setPadding(infoBody, 20, 16, 32, 16);
+  widgetMatchParentWidth(infoHeaderCard);
+  widgetMatchParentWidth(infoSettingsCard);
 
-const infoContent = VStack(0, [infoBody]);
-widgetMatchParentWidth(infoBody);
-const infoScreen = ScrollView();
-scrollviewSetChild(infoScreen, infoContent);
-widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
-widgetSetHidden(infoScreen, 1);
+  var infoContent = VStack(0, [infoBody]);
+  widgetMatchParentWidth(infoBody);
+  var infoScreen = ScrollView();
+  scrollviewSetChild(infoScreen, infoContent);
+  widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
+  widgetSetHidden(infoScreen, 1);
+} else {
+  // Desktop: About opens in a separate window
+  const infoWindowBody = VStack(16, [
+    infoHeaderCard,
+    settingsHeader,
+    infoSettingsCard,
+  ]);
+  setPadding(infoWindowBody, 24, 24, 24, 24);
+  widgetSetBackgroundColor(infoWindowBody, bgR, bgG, bgB, 1.0);
+  widgetMatchParentWidth(infoHeaderCard);
+  widgetMatchParentWidth(infoSettingsCard);
 
-// Info buttons for connection and browser screens
-const connInfoBtn = Button('About', () => { saveState('previousScreen', '0'); showScreen(2); });
-buttonSetBordered(connInfoBtn, 0);
-buttonSetTextColor(connInfoBtn, tmR, tmG, tmB, 1.0);
-widgetAddChild(connBody, HStack(0, [Spacer(), connInfoBtn, Spacer()]));
+  var aboutWindow = Window('About Mango', 420, 380);
+  aboutWindow.setBody(infoWindowBody);
+}
+
+// About button for mobile (no menu bar)
+if (mobile) {
+  const connInfoBtn = Button('About', () => { saveState('previousScreen', '0'); showScreen(2); });
+  buttonSetBordered(connInfoBtn, 0);
+  buttonSetTextColor(connInfoBtn, tmR, tmG, tmB, 1.0);
+  widgetAddChild(connBody, HStack(0, [Spacer(), connInfoBtn, Spacer()]));
+}
 
 // --- Screen switching ---
 function showScreen(idx: number): void {
   widgetSetHidden(connectionScreen, idx === 0 ? 0 : 1);
   widgetSetHidden(browserScreen, idx === 1 ? 0 : 1);
-  widgetSetHidden(infoScreen, idx === 2 ? 0 : 1);
+  if (mobile) widgetSetHidden(infoScreen, idx === 2 ? 0 : 1);
+  if (!mobile && idx === 2) aboutWindow.show();
 }
 
 // --- Restore last session ---
@@ -1598,11 +1626,11 @@ async function restoreLastSession(): Promise<void> {
   const lastName = getState('lastConnName');
   if (!lastUri) return;
 
-  showStatus('Reconnecting...', false);
+  showStatus(t('Reconnecting...'), false);
   const ok = await connectToMongo(lastUri);
   if (!ok) {
     if (lastConnError) {
-      showStatus('Reconnect failed: ' + lastConnError, true);
+      showStatus(t('Reconnect failed') + ': ' + lastConnError, true);
     } else {
       widgetSetHidden(statusText, 1);
     }
@@ -1634,15 +1662,20 @@ restoreLastSession();
 trackAppLaunch();
 
 // --- Launch ---
-const appBody = VStack(0, [connectionScreen, browserScreen, infoScreen]);
+let appBody: any;
+if (mobile) {
+  appBody = VStack(0, [connectionScreen, browserScreen, infoScreen]);
+} else {
+  appBody = VStack(0, [connectionScreen, browserScreen]);
+}
 widgetSetBackgroundColor(appBody, bgR, bgG, bgB, 1.0);
 
 // Force screens to fill full window
 widgetMatchParentWidth(connectionScreen);
 widgetMatchParentWidth(browserScreen);
-widgetMatchParentWidth(infoScreen);
 // On Android, LinearLayout needs explicit MATCH_PARENT height (UIStackView Fill handles this on Apple)
 if (mobile) {
+  widgetMatchParentWidth(infoScreen);
   widgetMatchParentHeight(connectionScreen);
   widgetMatchParentHeight(browserScreen);
   widgetMatchParentHeight(infoScreen);
@@ -1653,6 +1686,16 @@ widgetMatchParentWidth(toolbarBox);
 // Pin browserBody children to fill width
 widgetMatchParentWidth(queryCard);
 widgetMatchParentWidth(docsScroll);
+
+// --- Menu bar (macOS/Linux/Windows) ---
+if (!mobile) {
+  const appMenu = menuCreate();
+  menuAddItem(appMenu, 'About Mango', () => { aboutWindow.show(); });
+
+  const menuBar = menuBarCreate();
+  menuBarAddMenu(menuBar, 'Mango', appMenu);
+  menuBarAttach(menuBar);
+}
 
 App({
   title: 'Mango',
