@@ -3,7 +3,7 @@ import {
   TextField, TextArea, ScrollView, ImageFile,
   textSetFontSize, textSetFontWeight, textSetColor, textSetString,
   textSetFontFamily,
-  buttonSetBordered, buttonSetTextColor, buttonSetTitle,
+  buttonSetBordered, buttonSetTextColor, buttonSetTitle, textSetWraps,
   widgetAddChild, widgetClearChildren, widgetSetHidden,
   widgetSetBackgroundColor, widgetSetBackgroundGradient,
   widgetMatchParentWidth, widgetMatchParentHeight, widgetSetHugging, widgetSetHeight, widgetSetWidth,
@@ -504,10 +504,11 @@ function refreshConnectionList(): void {
     textSetFontWeight(welcomeTitle, 24, 0.5);
     textSetColor(welcomeTitle, txR, txG, txB, 1.0);
 
-    const welcomeHint = Text('Connect to your MongoDB instance to browse databases, query collections, and manage documents.');
+    const welcomeHint = Text(t('Connect to your MongoDB instance to browse databases, query collections, and manage documents.'));
     textSetFontSize(welcomeHint, 14);
     textSetFontFamily(welcomeHint, uiFont);
     textSetColor(welcomeHint, tmR, tmG, tmB, 1.0);
+    textSetWraps(welcomeHint, 0);
 
     // Feature pills with orange accent
     function makePill(label: string): any {
@@ -524,8 +525,8 @@ function refreshConnectionList(): void {
       return pill;
     }
 
-    const pillRow1 = HStack(8, [makePill('Databases & Collections'), makePill('Query & Filter')]);
-    const pillRow2 = HStack(8, [makePill('Edit & Insert'), makePill('Index Viewer')]);
+    const pillRow1 = HStack(8, [makePill(t('Databases & Collections')), makePill(t('Query & Filter'))]);
+    const pillRow2 = HStack(8, [makePill(t('Edit & Insert')), makePill(t('Index Viewer'))]);
     const pillGrid = VStack(8, [pillRow1, pillRow2]);
 
     const ctaBtn = Button('+ New Connection', () => { showConnectionForm(); });
@@ -541,10 +542,11 @@ function refreshConnectionList(): void {
 
     // First-launch analytics notice
     if (!getState('analyticsNoticeShown')) {
-      const noticeText = Text('Mango sends anonymous usage statistics to help improve the app. You can change this in About.');
+      const noticeText = Text(t('Mango sends anonymous usage statistics to help improve the app. You can change this in About.'));
       textSetFontSize(noticeText, 11);
       textSetFontFamily(noticeText, uiFont);
       textSetColor(noticeText, tmR, tmG, tmB, 0.8);
+      textSetWraps(noticeText, 0);
       widgetAddChild(welcomeCard, noticeText);
       saveState('analyticsNoticeShown', '1');
     }
