@@ -653,8 +653,10 @@ function refreshConnectionList(): void {
 
   // Add new connection button
   const addMoreBtn = Button('+ New Connection', () => { showConnectionForm(); });
-  buttonSetBordered(addMoreBtn, 0);
-  buttonSetTextColor(addMoreBtn, moR, moG, moB, 1.0);
+  buttonSetTextColor(addMoreBtn, 1.0, 1.0, 1.0, 1.0);
+  widgetSetBackgroundColor(addMoreBtn, moR, moG, moB, 1.0);
+  setCornerRadius(addMoreBtn, 8);
+  setPadding(addMoreBtn, 10, 16, 10, 16);
   widgetAddChild(connListContainer, addMoreBtn);
 }
 
@@ -1560,48 +1562,37 @@ widgetSetBackgroundColor(infoSettingsCard, sfR, sfG, sfB, 1.0);
 setCornerRadius(infoSettingsCard, 14);
 setPadding(infoSettingsCard, 20, 28, 20, 28);
 
-if (mobile) {
-  // Mobile: keep inline screen with back button
-  const backBtn = Button('< Back', () => {
-    const prev = getState('previousScreen');
-    showScreen(prev === '1' ? 1 : 0);
-  });
-  buttonSetBordered(backBtn, 0);
-  buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
-  setPadding(backBtn, 8, 4, 8, 4);
+// Mobile: inline About screen
+const backBtn = Button('< Back', () => {
+  const prev = getState('previousScreen');
+  showScreen(prev === '1' ? 1 : 0);
+});
+buttonSetBordered(backBtn, 0);
+buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
+if (mobile) setPadding(backBtn, 8, 4, 8, 4);
 
-  const backRow = HStack(8, [backBtn, Spacer()]);
-  stackSetAlignment(backRow, 0);
-  var infoBody = VStack(12, [
-    backRow,
-    infoHeaderCard,
-    settingsHeader,
-    infoSettingsCard,
-  ]);
-  setPadding(infoBody, 20, 16, 32, 16);
-  widgetMatchParentWidth(infoHeaderCard);
-  widgetMatchParentWidth(infoSettingsCard);
+const infoBody = VStack(12, [
+  HStack(8, [backBtn, Spacer()]),
+  infoHeaderCard,
+  settingsHeader,
+  infoSettingsCard,
+]);
+const infoPadH = mobile ? 16 : 280;
+setPadding(infoBody, mobile ? 20 : 40, infoPadH, 32, infoPadH);
+widgetMatchParentWidth(infoHeaderCard);
+widgetMatchParentWidth(infoSettingsCard);
 
-  var infoContent = VStack(0, [infoBody]);
-  widgetMatchParentWidth(infoBody);
-  var infoScreen = ScrollView();
-  scrollviewSetChild(infoScreen, infoContent);
-  widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
-  widgetSetHidden(infoScreen, 1);
-} else {
-  // Desktop: About opens in a separate window
-  const infoWindowBody = VStack(16, [
-    infoHeaderCard,
-    settingsHeader,
-    infoSettingsCard,
-  ]);
-  setPadding(infoWindowBody, 24, 24, 24, 24);
-  widgetSetBackgroundColor(infoWindowBody, bgR, bgG, bgB, 1.0);
-  widgetMatchParentWidth(infoHeaderCard);
-  widgetMatchParentWidth(infoSettingsCard);
+const infoContent = VStack(0, [infoBody]);
+widgetMatchParentWidth(infoBody);
+const infoScreen = ScrollView();
+scrollviewSetChild(infoScreen, infoContent);
+widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
+widgetSetHidden(infoScreen, 1);
 
+// Desktop: also open About in a separate window
+if (!mobile) {
   var aboutWindow = Window('About Mango', 420, 380);
-  aboutWindow.setBody(infoWindowBody);
+  aboutWindow.setBody(infoContent);
 }
 
 // About button for mobile (no menu bar)
@@ -1616,8 +1607,7 @@ if (mobile) {
 function showScreen(idx: number): void {
   widgetSetHidden(connectionScreen, idx === 0 ? 0 : 1);
   widgetSetHidden(browserScreen, idx === 1 ? 0 : 1);
-  if (mobile) widgetSetHidden(infoScreen, idx === 2 ? 0 : 1);
-  if (!mobile && idx === 2) aboutWindow.show();
+  widgetSetHidden(infoScreen, idx === 2 ? 0 : 1);
 }
 
 // --- Restore last session ---
@@ -1662,20 +1652,15 @@ restoreLastSession();
 trackAppLaunch();
 
 // --- Launch ---
-let appBody: any;
-if (mobile) {
-  appBody = VStack(0, [connectionScreen, browserScreen, infoScreen]);
-} else {
-  appBody = VStack(0, [connectionScreen, browserScreen]);
-}
+const appBody = VStack(0, [connectionScreen, browserScreen, infoScreen]);
 widgetSetBackgroundColor(appBody, bgR, bgG, bgB, 1.0);
 
 // Force screens to fill full window
 widgetMatchParentWidth(connectionScreen);
 widgetMatchParentWidth(browserScreen);
+widgetMatchParentWidth(infoScreen);
 // On Android, LinearLayout needs explicit MATCH_PARENT height (UIStackView Fill handles this on Apple)
 if (mobile) {
-  widgetMatchParentWidth(infoScreen);
   widgetMatchParentHeight(connectionScreen);
   widgetMatchParentHeight(browserScreen);
   widgetMatchParentHeight(infoScreen);
@@ -1690,7 +1675,7 @@ widgetMatchParentWidth(docsScroll);
 // --- Menu bar (macOS/Linux/Windows) ---
 if (!mobile) {
   const appMenu = menuCreate();
-  menuAddItem(appMenu, 'About Mango', () => { aboutWindow.show(); });
+  menuAddItem(appMenu, 'About Mango', () => { showScreen(2); });
 
   const menuBar = menuBarCreate();
   menuBarAddMenu(menuBar, 'Mango', appMenu);

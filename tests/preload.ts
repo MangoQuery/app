@@ -4,6 +4,9 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { SQLite } from './mocks/perry-sqlite';
 import { Platform, Application, Window } from './mocks/perry';
 
+// Perry compile-time constant: 0=macOS (native path, not web)
+(globalThis as any).__platform__ = 0;
+
 plugin({
   name: 'perry-mock',
   setup(build) {
@@ -34,11 +37,20 @@ plugin({
       loader: 'object',
     }));
 
-    // Mock 'better-sqlite3' using bun:sqlite with in-memory databases
+    // Mock 'better-sqlite3' using bun:sqlite with in-memory databases.
+    // Cache by filename so repeated initDb() calls return the same instance.
+    // Expose cache on globalThis so resetDatabase() can access it.
+    const dbCache = new Map<string, InstanceType<typeof BunDatabase>>();
+    (globalThis as any).__sqliteDbCache = dbCache;
     build.module('better-sqlite3', () => ({
       exports: {
-        default: function (_filename: string) {
-          return new BunDatabase(':memory:');
+        default: function (filename: string) {
+          let db = dbCache.get(filename);
+          if (!db) {
+            db = new BunDatabase(':memory:');
+            dbCache.set(filename, db);
+          }
+          return db;
         },
       },
       loader: 'object',
