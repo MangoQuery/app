@@ -33,6 +33,10 @@ const iPad = isIOS && getDeviceIdiom() === 1;
 // iPad uses desktop layout (sidebar always visible, wider padding); iPhone/Android use mobile layout
 const mobile = (__platform__ === 1 || __platform__ === 2) && !iPad;
 
+// --- Screenshot mode (0=off, 1=welcome, 2=browse, 3=query, 4=edit, 5=about) ---
+// Patched via sed by screenshots/capture-ios.sh before each compile
+const SCREENSHOT_MODE = 0;
+
 // --- Theme (matches brand: mangoquery.com) ---
 const dark = isDarkMode();
 
@@ -1649,7 +1653,73 @@ async function restoreLastSession(): Promise<void> {
     await runQuery(lastDb, lastColl, '{}');
   }
 }
-restoreLastSession();
+// --- Screenshot mode ---
+async function setupScreenshotMode(mode: number): Promise<void> {
+  if (mode === 1) {
+    // Welcome screen with mock saved connections
+    createConnection({ name: 'Production', host: 'prod.cluster.example.net', port: 27017, connectionString: 'mongodb+srv://admin:****@prod.cluster.example.net' } as any);
+    createConnection({ name: 'Staging', host: 'staging.example.com', port: 27017, connectionString: 'mongodb://staging.example.com:27017' } as any);
+    createConnection({ name: 'Local dev', host: 'localhost', port: 27017, connectionString: 'mongodb://localhost:27017' } as any);
+    loadConnections();
+    refreshConnectionList();
+    // Screen 0 is already shown by default
+  } else if (mode === 2) {
+    // Browser with sidebar + document list
+    showScreen(1);
+    currentConnName = 'Production';
+    textSetString(connLabel, 'Production');
+    sidebarDbNames = ['admin', 'config', 'shop_db', 'analytics'];
+    expandedDbIdx = 2;
+    collDbIdx = [2, 2, 2, 2];
+    collNames = ['customers', 'orders', 'products', 'inventory'];
+    renderSidebar();
+    if (mobile && !sidebarVisible) { showSidebar(); }
+    activeDbName = 'shop_db';
+    activeCollName = 'customers';
+    textfieldSetString(dbField, 'shop_db');
+    textfieldSetString(collField, 'customers');
+    displayDocs(JSON.stringify([
+      {"_id":{"$oid":"69b26f3a8c1d4e5f7a2b63b1"},"name":"Alice","email":"alice@example.com","age":30,"role":"admin"},
+      {"_id":{"$oid":"69b26f3a8c1d4e5f7a2b63b2"},"name":"Bob","email":"bob@example.com","age":25,"role":"user"},
+      {"_id":{"$oid":"69b26f3a8c1d4e5f7a2b63b3"},"name":"Charlie","email":"charlie@example.com","age":35,"role":"editor"},
+    ]));
+  } else if (mode === 3) {
+    // Query with filter and results
+    showScreen(1);
+    currentConnName = 'Production';
+    textSetString(connLabel, 'Production');
+    sidebarDbNames = ['admin', 'config', 'users_db'];
+    expandedDbIdx = -1;
+    renderSidebar();
+    if (mobile && !sidebarVisible) { showSidebar(); }
+    activeDbName = 'users_db';
+    activeCollName = 'profiles';
+    textfieldSetString(dbField, 'users_db');
+    textfieldSetString(collField, 'profiles');
+    textfieldSetString(filterField, '{ "role": "admin" }');
+    displayDocs(JSON.stringify([
+      {"_id":{"$oid":"5f4d8a2e9c3b7f1a2e8da1b2"},"name":"Sarah Chen","email":"sarah@company.com","role":"admin","active":true},
+      {"_id":{"$oid":"5f4d8a2e9c3b7f1a2e8dc3d4"},"name":"James Park","email":"james@company.com","role":"admin","active":true},
+    ]));
+  } else if (mode === 4) {
+    // Document edit view
+    showScreen(1);
+    currentConnName = 'Production';
+    textSetString(connLabel, 'Production');
+    activeDbName = 'shop_db';
+    activeCollName = 'customers';
+    await showEditView(JSON.stringify({"_id":{"$oid":"69b26f3a8c1d4e5f7a2b63b1"},"name":"Alice Johnson","email":"alice@example.com","age":30,"role":"admin","department":"Engineering","active":true,"permissions":["read","write","delete"]}));
+  } else if (mode === 5) {
+    // About/Info screen
+    showScreen(2);
+  }
+}
+
+if (SCREENSHOT_MODE > 0) {
+  setupScreenshotMode(SCREENSHOT_MODE);
+} else {
+  restoreLastSession();
+}
 trackAppLaunch();
 
 // --- Launch ---

@@ -1,0 +1,4 @@
+{
+    "service_account_key": "/path/to/your-service-account-key.json",
+    "package_name": "com.skelpo.mango"
+}

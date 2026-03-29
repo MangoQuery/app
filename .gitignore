@@ -25,5 +25,14 @@ node_modules/
 # Lock files
 bun.lock
 
+# Screenshots (raw captures + generated marketing frames)
+screenshots/raw/
+appstore/screenshots/
+playstore/screenshots/
+
+# Store credentials (contain API keys)
+appstore/config.json
+playstore/config.json
+
 # Internal docs
 mango-product-spec.md

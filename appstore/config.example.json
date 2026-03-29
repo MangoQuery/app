@@ -1,0 +1,6 @@
+{
+  "issuer_id": "YOUR_ISSUER_ID",
+  "key_id": "YOUR_KEY_ID",
+  "key_file": "path/to/AuthKey_XXXXXX.p8",
+  "bundle_id": "com.skelpo.mango"
+}
