@@ -796,8 +796,7 @@ refreshConnectionList();
 
 // --- Hero banner (full-width via ScrollView Width alignment) ---
 const heroLogo = ImageFile('assets/mango-app-icon-128.png');
-widgetSetWidth(heroLogo, mobile ? 40 : 56);
-widgetSetHeight(heroLogo, mobile ? 40 : 56);
+heroLogo.setSize(mobile ? 40 : 56, mobile ? 40 : 56);
 
 const heroTitle = Text('Mango');
 textSetFontSize(heroTitle, mobile ? 28 : 38);
@@ -900,8 +899,7 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
 
 // Browser toolbar — logo + connection name + status
 const browserLogo = ImageFile('assets/mango-app-icon-128.png');
-widgetSetWidth(browserLogo, 24);
-widgetSetHeight(browserLogo, 24);
+browserLogo.setSize(24, 24);
 
 const browserTitle = Text('Mango');
 textSetFontSize(browserTitle, 18);
@@ -1453,8 +1451,7 @@ function setAnalyticsEnabled(enabled: boolean): void {
 }
 
 const infoLogo = ImageFile('assets/mango-app-icon-128.png');
-widgetSetWidth(infoLogo, 80);
-widgetSetHeight(infoLogo, 80);
+infoLogo.setSize(80, 80);
 
 const infoTitle = Text('Mango');
 textSetFontSize(infoTitle, 32);
@@ -1587,12 +1584,14 @@ widgetMatchParentWidth(infoSettingsCard);
 const infoContent = VStack(0, [infoBody]);
 widgetMatchParentWidth(infoBody);
 const infoScreen = ScrollView();
-scrollviewSetChild(infoScreen, infoContent);
 widgetSetBackgroundColor(infoScreen, bgR, bgG, bgB, 1.0);
 widgetSetHidden(infoScreen, 1);
 
-// Desktop: also open About in a separate window
-if (!mobile) {
+if (mobile) {
+  // Mobile: inline About screen inside scrollview
+  scrollviewSetChild(infoScreen, infoContent);
+} else {
+  // Desktop: About in a separate window (don't share widget with scrollview)
   var aboutWindow = Window('About Mango', 420, 380);
   aboutWindow.setBody(infoContent);
 }
@@ -1677,7 +1676,7 @@ widgetMatchParentWidth(docsScroll);
 // --- Menu bar (macOS/Linux/Windows) ---
 if (!mobile) {
   const appMenu = menuCreate();
-  menuAddItem(appMenu, 'About Mango', () => { showScreen(2); });
+  menuAddItem(appMenu, 'About Mango', () => { aboutWindow.show(); });
 
   const menuBar = menuBarCreate();
   menuBarAddMenu(menuBar, 'Mango', appMenu);
