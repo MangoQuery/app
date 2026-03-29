@@ -32,6 +32,7 @@ entitlements = [
     "com.apple.security.app-sandbox",
     "com.apple.security.network.client",
 ]
+notarize_certificate = "/Users/amlug/.perry/macos_devid.p12"
 notarize_signing_identity = "Developer ID Application: Skelpo GmbH"
 signing_identity = "3rd Party Mac Developer Application: Skelpo GmbH (K6UW5YV9F7)"
 
