@@ -799,8 +799,8 @@ function showConnectionForm(): void {
 refreshConnectionList();
 
 // --- Hero banner (full-width via ScrollView Width alignment) ---
-const heroLogo = ImageFile('assets/mango-app-icon-128.png');
-heroLogo.setSize(mobile ? 40 : 56, mobile ? 40 : 56);
+const heroLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-44.png');
+heroLogo.setSize(mobile ? 40 : 44, mobile ? 40 : 44);
 
 const heroTitle = Text('Mango');
 textSetFontSize(heroTitle, mobile ? 28 : 38);
