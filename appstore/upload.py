@@ -118,7 +118,8 @@ class AppStoreConnectAPI:
         return exact[0]
 
     def get_edit_version(self, app_id, platform="IOS"):
-        for state in ["PREPARE_FOR_SUBMISSION", "READY_FOR_SALE"]:
+        for state in ["PREPARE_FOR_SUBMISSION", "REJECTED", "DEVELOPER_REJECTED",
+                       "DEVELOPER_ACTION_NEEDED", "INVALID_BINARY", "READY_FOR_SALE"]:
             data = self.get(
                 f"/apps/{app_id}/appStoreVersions",
                 params={

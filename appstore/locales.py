@@ -57,7 +57,7 @@ LOCALES = {
         "keywords": "mongodb,database,nosql,query,document,collection,json,gui,client,db,mongo",
         "promotional_text": (
             "The MongoDB client that just works. No Electron, no bloat. "
-            "Native speed on macOS, iOS, Android, Linux, and Windows."
+            "Native speed on macOS and iOS."
         ),
         "description": (
             "Browse databases, query collections, and edit documents — "
@@ -81,7 +81,7 @@ LOCALES = {
             "Passwords stored securely in the system keychain.\n\n"
             "DARK & LIGHT MODE\n"
             "Follows your system preference automatically.\n\n"
-            "Native on macOS, iOS, Android, Linux, and Windows.\n\n"
+            "Native on macOS and iOS.\n\n"
             "One price. All features. All platforms."
         ),
         "whats_new": "Bug fixes and performance improvements.",
@@ -102,7 +102,7 @@ LOCALES = {
         "keywords": "mongodb,datenbank,nosql,abfrage,dokument,collection,json,gui,client,db,mongo",
         "promotional_text": (
             "Der MongoDB-Client, der einfach funktioniert. Kein Electron, kein Ballast. "
-            "Native Geschwindigkeit auf macOS, iOS, Android, Linux und Windows."
+            "Native Geschwindigkeit auf macOS und iOS."
         ),
         "description": (
             "Datenbanken durchsuchen, Collections abfragen und Dokumente bearbeiten — "
@@ -126,7 +126,7 @@ LOCALES = {
             "Passwoerter sicher im System-Schluesselring gespeichert.\n\n"
             "HELL & DUNKEL\n"
             "Folgt automatisch deiner Systemeinstellung.\n\n"
-            "Nativ auf macOS, iOS, Android, Linux und Windows.\n\n"
+            "Nativ auf macOS und iOS.\n\n"
             "Ein Preis. Alle Funktionen. Alle Plattformen."
         ),
         "whats_new": "Fehlerbehebungen und Leistungsverbesserungen.",
@@ -145,7 +145,7 @@ LOCALES = {
         "name": "Mango — MongoDB Client",
         "subtitle": "閲覧。クエリ。編集。",
         "keywords": "mongodb,データベース,nosql,クエリ,ドキュメント,コレクション,json,gui,クライアント,db,mongo",
-        "promotional_text": "ただ動くMongoDBクライアント。Electronなし、無駄なし。macOS、iOS、Android、Linux、Windowsでネイティブ速度。",
+        "promotional_text": "ただ動くMongoDBクライアント。Electronなし、無駄なし。macOS、iOSでネイティブ速度。",
         "description": (
             "データベースを閲覧、コレクションをクエリ、ドキュメントを編集 — "
             "すべてのプラットフォームで快適に動作する高速ネイティブアプリで。\n\n"
@@ -166,7 +166,7 @@ LOCALES = {
             "パスワードはシステムキーチェーンに安全に保存。\n\n"
             "ダーク & ライトモード\n"
             "システム設定に自動で追従。\n\n"
-            "macOS、iOS、Android、Linux、Windowsでネイティブ対応。\n\n"
+            "macOS、iOSでネイティブ対応。\n\n"
             "ワンプライス。全機能。全プラットフォーム。"
         ),
         "whats_new": "バグ修正とパフォーマンスの改善。",
@@ -185,7 +185,7 @@ LOCALES = {
         "name": "Mango — MongoDB Client",
         "subtitle": "浏览。查询。编辑。",
         "keywords": "mongodb,数据库,nosql,查询,文档,集合,json,gui,客户端,db,mongo",
-        "promotional_text": "真正好用的MongoDB客户端。无Electron、无臃肿。macOS、iOS、Android、Linux和Windows上原生速度。",
+        "promotional_text": "真正好用的MongoDB客户端。无Electron、无臃肿。macOS和iOS上原生速度。",
         "description": (
             "浏览数据库、查询集合、编辑文档 — "
             "在每个平台上都如鱼得水的快速原生应用。\n\n"
@@ -204,7 +204,7 @@ LOCALES = {
             "使用SCRAM-SHA-256认证和TLS保存连接配置。密码安全存储在系统钥匙串中。\n\n"
             "深色与浅色模式\n"
             "自动跟随系统设置。\n\n"
-            "原生支持macOS、iOS、Android、Linux和Windows。\n\n"
+            "原生支持macOS和iOS。\n\n"
             "一次付费。全部功能。全平台。"
         ),
         "whats_new": "错误修复和性能改进。",
@@ -225,7 +225,7 @@ LOCALES = {
         "keywords": "mongodb,base de datos,nosql,consulta,documento,coleccion,json,gui,cliente,db,mongo",
         "promotional_text": (
             "El cliente MongoDB que simplemente funciona. Sin Electron, sin sobrecarga. "
-            "Velocidad nativa en macOS, iOS, Android, Linux y Windows."
+            "Velocidad nativa en macOS e iOS."
         ),
         "description": (
             "Explora bases de datos, consulta colecciones y edita documentos — "
@@ -249,7 +249,7 @@ LOCALES = {
             "Contrasenas almacenadas de forma segura en el llavero del sistema.\n\n"
             "MODO CLARO Y OSCURO\n"
             "Sigue tu preferencia del sistema automaticamente.\n\n"
-            "Nativo en macOS, iOS, Android, Linux y Windows.\n\n"
+            "Nativo en macOS e iOS.\n\n"
             "Un precio. Todas las funciones. Todas las plataformas."
         ),
         "whats_new": "Correcciones de errores y mejoras de rendimiento.",
@@ -270,7 +270,7 @@ LOCALES = {
         "keywords": "mongodb,base de donnees,nosql,requete,document,collection,json,gui,client,db,mongo",
         "promotional_text": (
             "Le client MongoDB qui fonctionne, tout simplement. Sans Electron, sans superflu. "
-            "Vitesse native sur macOS, iOS, Android, Linux et Windows."
+            "Vitesse native sur macOS et iOS."
         ),
         "description": (
             "Parcourez les bases de donnees, interrogez les collections et modifiez les documents — "
@@ -294,7 +294,7 @@ LOCALES = {
             "Mots de passe stockes de maniere securisee dans le trousseau systeme.\n\n"
             "MODE CLAIR & SOMBRE\n"
             "Suit automatiquement votre preference systeme.\n\n"
-            "Natif sur macOS, iOS, Android, Linux et Windows.\n\n"
+            "Natif sur macOS et iOS.\n\n"
             "Un prix. Toutes les fonctionnalites. Toutes les plateformes."
         ),
         "whats_new": "Corrections de bugs et ameliorations de performances.",
@@ -315,7 +315,7 @@ LOCALES = {
         "keywords": "mongodb,banco de dados,nosql,consulta,documento,colecao,json,gui,cliente,db,mongo",
         "promotional_text": (
             "O cliente MongoDB que simplesmente funciona. Sem Electron, sem inchaço. "
-            "Velocidade nativa no macOS, iOS, Android, Linux e Windows."
+            "Velocidade nativa no macOS e iOS."
         ),
         "description": (
             "Navegue por bancos de dados, consulte colecoes e edite documentos — "
@@ -339,7 +339,7 @@ LOCALES = {
             "Senhas armazenadas com seguranca no chaveiro do sistema.\n\n"
             "MODO CLARO & ESCURO\n"
             "Segue automaticamente sua preferencia do sistema.\n\n"
-            "Nativo no macOS, iOS, Android, Linux e Windows.\n\n"
+            "Nativo no macOS e iOS.\n\n"
             "Um preco. Todos os recursos. Todas as plataformas."
         ),
         "whats_new": "Correcoes de bugs e melhorias de desempenho.",
@@ -358,7 +358,7 @@ LOCALES = {
         "name": "Mango — MongoDB Client",
         "subtitle": "탐색. 쿼리. 편집.",
         "keywords": "mongodb,데이터베이스,nosql,쿼리,문서,컬렉션,json,gui,클라이언트,db,mongo",
-        "promotional_text": "그냥 작동하는 MongoDB 클라이언트. Electron 없이, 군더더기 없이. macOS, iOS, Android, Linux, Windows에서 네이티브 속도.",
+        "promotional_text": "그냥 작동하는 MongoDB 클라이언트. Electron 없이, 군더더기 없이. macOS, iOS에서 네이티브 속도.",
         "description": (
             "데이터베이스 탐색, 컬렉션 쿼리, 문서 편집 — "
             "모든 플랫폼에서 자연스럽게 느껴지는 빠른 네이티브 앱으로.\n\n"
@@ -379,7 +379,7 @@ LOCALES = {
             "비밀번호는 시스템 키체인에 안전하게 보관.\n\n"
             "다크 & 라이트 모드\n"
             "시스템 설정을 자동으로 따름.\n\n"
-            "macOS, iOS, Android, Linux, Windows에서 네이티브 지원.\n\n"
+            "macOS, iOS에서 네이티브 지원.\n\n"
             "한 번 결제. 모든 기능. 모든 플랫폼."
         ),
         "whats_new": "버그 수정 및 성능 개선.",
@@ -400,7 +400,7 @@ LOCALES = {
         "keywords": "mongodb,database,nosql,query,documento,collezione,json,gui,client,db,mongo",
         "promotional_text": (
             "Il client MongoDB che funziona e basta. Niente Electron, niente bloat. "
-            "Velocita nativa su macOS, iOS, Android, Linux e Windows."
+            "Velocita nativa su macOS e iOS."
         ),
         "description": (
             "Sfoglia i database, interroga le collezioni e modifica i documenti — "
@@ -424,7 +424,7 @@ LOCALES = {
             "Password archiviate in modo sicuro nel portachiavi di sistema.\n\n"
             "MODALITA CHIARA & SCURA\n"
             "Segue automaticamente le preferenze di sistema.\n\n"
-            "Nativo su macOS, iOS, Android, Linux e Windows.\n\n"
+            "Nativo su macOS e iOS.\n\n"
             "Un prezzo. Tutte le funzionalita. Tutte le piattaforme."
         ),
         "whats_new": "Correzioni di bug e miglioramenti delle prestazioni.",
@@ -445,7 +445,7 @@ LOCALES = {
         "keywords": "mongodb,veritabani,nosql,sorgu,belge,koleksiyon,json,gui,istemci,db,mongo",
         "promotional_text": (
             "Sadece calisan MongoDB istemcisi. Electron yok, gereksiz yuk yok. "
-            "macOS, iOS, Android, Linux ve Windows'ta dogal hiz."
+            "macOS ve iOS'ta dogal hiz."
         ),
         "description": (
             "Veritabanlarini gozat, koleksiyonlari sorgula ve belgeleri duzenle — "
@@ -468,7 +468,7 @@ LOCALES = {
             "Sifreler sistem anahtarliginda guvenle saklanir.\n\n"
             "ACIK & KOYU MOD\n"
             "Sistem tercihinizi otomatik olarak takip eder.\n\n"
-            "macOS, iOS, Android, Linux ve Windows'ta yerel.\n\n"
+            "macOS ve iOS'ta yerel.\n\n"
             "Tek fiyat. Tum ozellikler. Tum platformlar."
         ),
         "whats_new": "Hata duzeltmeleri ve performans iyilestirmeleri.",
@@ -487,7 +487,7 @@ LOCALES = {
         "name": "Mango — MongoDB Client",
         "subtitle": "เรียกดู สืบค้น แก้ไข",
         "keywords": "mongodb,ฐานข้อมูล,nosql,สืบค้น,เอกสาร,คอลเลกชัน,json,gui,ไคลเอนต์,db",
-        "promotional_text": "MongoDB client ที่ใช้งานได้เลย ไม่มี Electron ไม่มีของเกินจำเป็น ความเร็วระดับ native บน macOS, iOS, Android, Linux และ Windows",
+        "promotional_text": "MongoDB client ที่ใช้งานได้เลย ไม่มี Electron ไม่มีของเกินจำเป็น ความเร็วระดับ native บน macOS และ iOS",
         "description": (
             "เรียกดูฐานข้อมูล สืบค้นคอลเลกชัน และแก้ไขเอกสาร — "
             "ทั้งหมดจากแอปเนทีฟที่เร็วและลงตัวบนทุกแพลตฟอร์ม\n\n"
@@ -508,7 +508,7 @@ LOCALES = {
             "รหัสผ่านเก็บอย่างปลอดภัยใน keychain ระบบ\n\n"
             "โหมดสว่างและมืด\n"
             "ตามการตั้งค่าระบบโดยอัตโนมัติ\n\n"
-            "เนทีฟบน macOS, iOS, Android, Linux และ Windows\n\n"
+            "เนทีฟบน macOS และ iOS\n\n"
             "จ่ายครั้งเดียว ทุกฟีเจอร์ ทุกแพลตฟอร์ม"
         ),
         "whats_new": "แก้ไขข้อผิดพลาดและปรับปรุงประสิทธิภาพ",
@@ -529,7 +529,7 @@ LOCALES = {
         "keywords": "mongodb,database,nosql,kueri,dokumen,koleksi,json,gui,klien,db,mongo",
         "promotional_text": (
             "Klien MongoDB yang langsung berfungsi. Tanpa Electron, tanpa bloat. "
-            "Kecepatan native di macOS, iOS, Android, Linux, dan Windows."
+            "Kecepatan native di macOS dan iOS."
         ),
         "description": (
             "Jelajahi database, kueri koleksi, dan edit dokumen — "
@@ -553,7 +553,7 @@ LOCALES = {
             "Kata sandi disimpan dengan aman di keychain sistem.\n\n"
             "MODE TERANG & GELAP\n"
             "Mengikuti preferensi sistem Anda secara otomatis.\n\n"
-            "Native di macOS, iOS, Android, Linux, dan Windows.\n\n"
+            "Native di macOS dan iOS.\n\n"
             "Satu harga. Semua fitur. Semua platform."
         ),
         "whats_new": "Perbaikan bug dan peningkatan performa.",
@@ -574,7 +574,7 @@ LOCALES = {
         "keywords": "mongodb,co so du lieu,nosql,truy van,tai lieu,bo suu tap,json,gui,khach hang,db,mongo",
         "promotional_text": (
             "MongoDB client hoat dong ngay. Khong Electron, khong phinh to. "
-            "Toc do native tren macOS, iOS, Android, Linux va Windows."
+            "Toc do native tren macOS va iOS."
         ),
         "description": (
             "Duyet co so du lieu, truy van bo suu tap va chinh sua tai lieu — "
@@ -598,7 +598,7 @@ LOCALES = {
             "Mat khau duoc luu tru an toan trong keychain he thong.\n\n"
             "CHE DO SANG & TOI\n"
             "Tu dong theo tuy chon he thong cua ban.\n\n"
-            "Native tren macOS, iOS, Android, Linux va Windows.\n\n"
+            "Native tren macOS va iOS.\n\n"
             "Mot muc gia. Tat ca tinh nang. Tat ca nen tang."
         ),
         "whats_new": "Sua loi va cai thien hieu suat.",
