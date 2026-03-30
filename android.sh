@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PERRY_DIR="$(cd "$(dirname "$0")/../perry" && pwd)"
+PERRY_DIR="$(cd "$(dirname "$0")/../perry/perry" && pwd)"
 MANGO_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="mango-android"
 PACKAGE_ID="com.skelpo.mango"
@@ -85,6 +85,12 @@ echo "  Generated splash screen resources"
 if [ -d "$MANGO_DIR/logo" ]; then
     cp -r "$MANGO_DIR/logo" "$BUILD_DIR/app/src/main/assets/"
     echo "  Copied logo/ -> assets/logo/"
+fi
+# Copy assets/ directory (contains ImageFile references like 'assets/mango-app-icon-128.png')
+if [ -d "$MANGO_DIR/assets" ]; then
+    mkdir -p "$BUILD_DIR/app/src/main/assets/assets"
+    cp "$MANGO_DIR"/assets/*.png "$BUILD_DIR/app/src/main/assets/assets/" 2>/dev/null || true
+    echo "  Copied assets/*.png -> assets/assets/"
 fi
 
 # Write customized app/build.gradle.kts with mango package ID
