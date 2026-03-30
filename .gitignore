@@ -8,6 +8,10 @@ _perry_failed_stubs.o
 mango
 app
 app_debug
+mango-android
+screenshot-mac
+screenshot-ios-sim
+libhone_editor_android.so
 
 # Runtime data
 *.db
@@ -15,9 +19,11 @@ app_debug
 # Node modules
 node_modules/
 
-# IDE
+# IDE / tooling
 .vscode/
 .idea/
+.claude/
+.perry/
 
 # macOS
 .DS_Store
@@ -33,6 +39,15 @@ playstore/screenshots/
 # Store credentials (contain API keys)
 appstore/config.json
 playstore/config.json
+
+# Build artifacts
+*.app/
+mango-android-build/
+Mango-orig
+mango-test
+res/
+__pycache__/
+test-screenshots/
 
 # Internal docs
 mango-product-spec.md
