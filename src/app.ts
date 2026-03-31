@@ -902,7 +902,7 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
 });
 
 // Browser toolbar — logo + connection name + status
-const browserLogo = ImageFile('assets/mango-app-icon-128.png');
+const browserLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-24.png');
 browserLogo.setSize(24, 24);
 
 const browserTitle = Text('Mango');
@@ -1464,7 +1464,7 @@ function setAnalyticsEnabled(enabled: boolean): void {
   saveState('analyticsEnabled', enabled ? '1' : '0');
 }
 
-const infoLogo = ImageFile('assets/mango-app-icon-128.png');
+const infoLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-80.png');
 infoLogo.setSize(80, 80);
 
 const infoTitle = Text('Mango');
