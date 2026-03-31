@@ -12,7 +12,7 @@ import {
   scrollviewSetChild,
   textfieldSetString, textfieldGetString, textfieldSetNextKeyView,
   textareaSetString, textareaGetString,
-  menuCreate, menuAddItem, menuAddSeparator, menuAddSubmenu,
+  menuCreate, menuAddItem, menuAddSeparator, menuAddSubmenu, menuAddStandardAction,
   menuBarCreate, menuBarAddMenu, menuBarAttach,
   Window,
 } from 'perry/ui';
@@ -587,7 +587,6 @@ function refreshConnectionList(): void {
       connecting = true;
       buttonSetTitle(connectBtn, t('Connecting...'));
       const uri = connectionUris[connIdx] || `mongodb://${connectionHosts[connIdx]}:${connectionPorts[connIdx]}`;
-      showStatus('Connecting to: ' + uri, false);
       const ok = await connectToMongo(uri);
       if (ok) {
         widgetSetHidden(statusText, 1);
@@ -712,17 +711,26 @@ function showConnectionForm(): void {
 
   const saveBtn = Button('Save Connection', () => {
     try {
-      const name = textfieldGetString(nameField) || formName || t('Untitled');
-      const host = textfieldGetString(hostField) || formHost || 'localhost';
-      const port = textfieldGetString(portField) || formPort || '27017';
-      const user = textfieldGetString(userField) || formUser;
-      const pass = textfieldGetString(passField) || formPass;
-      const rawUri = textfieldGetString(uriField) || formUri;
+      const nameRaw = textfieldGetString(nameField);
+      const name = (typeof nameRaw === 'string' && nameRaw.length > 0) ? nameRaw : (formName || t('Untitled'));
+      const hostRaw = textfieldGetString(hostField);
+      const host = (typeof hostRaw === 'string' && hostRaw.length > 0) ? hostRaw : (formHost || 'localhost');
+      const portRaw = textfieldGetString(portField);
+      const port = (typeof portRaw === 'string' && portRaw.length > 0) ? portRaw : (formPort || '27017');
+      const user = textfieldGetString(userField) || '';
+      const pass = textfieldGetString(passField) || '';
+      const rawUri = textfieldGetString(uriField) || '';
 
       // Build URI from fields if no explicit URI provided
       let uri = rawUri;
       if (!uri) {
-        if (user && pass) {
+        // Only include auth if BOTH user and pass are non-empty real strings
+        let hasAuth = false;
+        if (user) {
+          const uTest = encodeURIComponent(user);
+          if (uTest.indexOf('undef') < 0 && uTest.length > 0) hasAuth = true;
+        }
+        if (hasAuth && pass) {
           uri = 'mongodb://' + encodeURIComponent(user) + ':' + encodeURIComponent(pass) + '@' + host + ':' + port;
         } else {
           uri = 'mongodb://' + host + ':' + port;
@@ -1770,8 +1778,19 @@ if (!mobile) {
   const appMenu = menuCreate();
   menuAddItem(appMenu, 'About Mango', () => { aboutWindow.show(); });
 
+  // Edit menu — standard actions routed to first responder for CMD+A/C/V/X
+  const editMenu = menuCreate();
+  menuAddStandardAction(editMenu, 'Undo', 'undo:', 'z');
+  menuAddStandardAction(editMenu, 'Redo', 'redo:', 'Cmd+Shift+z');
+  menuAddSeparator(editMenu);
+  menuAddStandardAction(editMenu, 'Cut', 'cut:', 'x');
+  menuAddStandardAction(editMenu, 'Copy', 'copy:', 'c');
+  menuAddStandardAction(editMenu, 'Paste', 'paste:', 'v');
+  menuAddStandardAction(editMenu, 'Select All', 'selectAll:', 'a');
+
   const menuBar = menuBarCreate();
   menuBarAddMenu(menuBar, 'Mango', appMenu);
+  menuBarAddMenu(menuBar, 'Edit', editMenu);
   menuBarAttach(menuBar);
 }
 
