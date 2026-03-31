@@ -1386,8 +1386,18 @@ if (mobile) {
   toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
 }
 const toolbarBox = VStack(0, [toolbarRow]);
-setPadding(toolbarBox, isIOS ? 52 : 12, mobile ? 16 : 24, 12, mobile ? 16 : 24); // iOS/iPad top safe area
-widgetSetBackgroundColor(toolbarBox, sfR, sfG, sfB, 1.0);
+setPadding(toolbarBox, isIOS ? 52 : (__platform__ === 4 ? 6 : 12), mobile ? 16 : 24, __platform__ === 4 ? 6 : 12, mobile ? 16 : 24); // iOS/iPad top safe area; Linux: tighter padding
+if (__platform__ === 4) {
+  // Linux/GTK4: use orange gradient so the toolbar stands out against the beige window background
+  widgetSetBackgroundGradient(toolbarBox, moR, moG, moB, 1.0, myR, myG, myB, 1.0, 1);
+  textSetColor(browserTitle, 1.0, 1.0, 1.0, 1.0);
+  textSetColor(connLabel, 1.0, 1.0, 1.0, 0.9);
+  buttonSetTextColor(disconnectBtn, 1.0, 1.0, 1.0, 0.9);
+  widgetSetHeight(toolbarBox, 44);
+  browserLogo.setSize(28, 28);
+} else {
+  widgetSetBackgroundColor(toolbarBox, sfR, sfG, sfB, 1.0);
+}
 
 // Query card
 const queryCard = VStack(8, []);
