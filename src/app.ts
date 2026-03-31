@@ -10,7 +10,7 @@ import {
   stackSetDistribution, stackSetAlignment,
   setCornerRadius, setPadding,
   scrollviewSetChild,
-  textfieldSetString, textfieldGetString,
+  textfieldSetString, textfieldGetString, textfieldSetNextKeyView,
   textareaSetString, textareaGetString,
   menuCreate, menuAddItem, menuAddSeparator, menuAddSubmenu,
   menuBarCreate, menuBarAddMenu, menuBarAttach,
@@ -587,6 +587,7 @@ function refreshConnectionList(): void {
       connecting = true;
       buttonSetTitle(connectBtn, t('Connecting...'));
       const uri = connectionUris[connIdx] || `mongodb://${connectionHosts[connIdx]}:${connectionPorts[connIdx]}`;
+      showStatus('Connecting to: ' + uri, false);
       const ok = await connectToMongo(uri);
       if (ok) {
         widgetSetHidden(statusText, 1);
@@ -702,6 +703,13 @@ function showConnectionForm(): void {
   const uriLabel = makeSecondary(t('Connection String'), 11);
   const uriField = TextField('mongodb+srv://user:pass@cluster.example.com/db', (val: string) => { formUri = val; });
 
+  // Tab key navigation: name → host → port → user → pass → uri
+  textfieldSetNextKeyView(nameField, hostField);
+  textfieldSetNextKeyView(hostField, portField);
+  textfieldSetNextKeyView(portField, userField);
+  textfieldSetNextKeyView(userField, passField);
+  textfieldSetNextKeyView(passField, uriField);
+
   const saveBtn = Button('Save Connection', () => {
     try {
       const name = textfieldGetString(nameField) || formName || t('Untitled');
@@ -799,7 +807,7 @@ function showConnectionForm(): void {
 refreshConnectionList();
 
 // --- Hero banner (full-width via ScrollView Width alignment) ---
-const heroLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-44.png');
+const heroLogo = ImageFile(mobile ? 'assets/mango-app-icon-40.png' : 'assets/mango-app-icon-44.png');
 heroLogo.setSize(mobile ? 40 : 44, mobile ? 40 : 44);
 
 const heroTitle = Text('Mango');
@@ -902,7 +910,7 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
 });
 
 // Browser toolbar — logo + connection name + status
-const browserLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-24.png');
+const browserLogo = ImageFile('assets/mango-app-icon-24.png');
 browserLogo.setSize(24, 24);
 
 const browserTitle = Text('Mango');
@@ -915,6 +923,10 @@ textSetColor(browserTitle, moR, moG, moB, 1.0);
 const dbField = TextField('database', (val: string) => { currentDbName = val; });
 const collField = TextField('collection', (val: string) => { currentCollName = val; });
 const filterField = TextField('filter: {}', (val: string) => { currentFilter = val || '{}'; });
+
+// Tab navigation: database → collection → filter
+textfieldSetNextKeyView(dbField, collField);
+textfieldSetNextKeyView(collField, filterField);
 
 // Context breadcrumb
 const breadcrumb = Text('');
@@ -1464,7 +1476,7 @@ function setAnalyticsEnabled(enabled: boolean): void {
   saveState('analyticsEnabled', enabled ? '1' : '0');
 }
 
-const infoLogo = ImageFile(mobile ? 'assets/mango-app-icon-128.png' : 'assets/mango-app-icon-80.png');
+const infoLogo = ImageFile('assets/mango-app-icon-80.png');
 infoLogo.setSize(80, 80);
 
 const infoTitle = Text('Mango');
