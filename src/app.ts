@@ -717,24 +717,23 @@ function showConnectionForm(): void {
       const host = (typeof hostRaw === 'string' && hostRaw.length > 0) ? hostRaw : (formHost || 'localhost');
       const portRaw = textfieldGetString(portField);
       const port = (typeof portRaw === 'string' && portRaw.length > 0) ? portRaw : (formPort || '27017');
-      const user = textfieldGetString(userField) || '';
-      const pass = textfieldGetString(passField) || '';
-      const rawUri = textfieldGetString(uriField) || '';
+      // Build URI using string concatenation (+) which Perry's codegen handles
+      // correctly for is_string locals. encodeURIComponent and || fail due to
+      // NaN-boxing being stripped (see PerryTS/perry#10, #12).
+      // Read user/pass into string variables via + '' (forces string concat path)
+      const userStr = textfieldGetString(userField) + '';
+      const passStr = textfieldGetString(passField) + '';
+      const uriStr = textfieldGetString(uriField) + '';
 
-      // Build URI from fields if no explicit URI provided
-      let uri = rawUri;
-      if (!uri) {
-        // Only include auth if BOTH user and pass are non-empty real strings
-        let hasAuth = false;
-        if (user) {
-          const uTest = encodeURIComponent(user);
-          if (uTest.indexOf('undef') < 0 && uTest.length > 0) hasAuth = true;
-        }
-        if (hasAuth && pass) {
-          uri = 'mongodb://' + encodeURIComponent(user) + ':' + encodeURIComponent(pass) + '@' + host + ':' + port;
-        } else {
-          uri = 'mongodb://' + host + ':' + port;
-        }
+      let uri = '';
+      if (uriStr.length > 0) {
+        uri = uriStr;
+      } else if (userStr.length > 0 && passStr.length > 0) {
+        // Note: not using encodeURIComponent — it corrupts NaN-boxed strings.
+        // Users with special chars in user/pass should use the URI field instead.
+        uri = 'mongodb://' + userStr + ':' + passStr + '@' + host + ':' + port;
+      } else {
+        uri = 'mongodb://' + host + ':' + port;
       }
 
       // Extract host (without port) from URI for display in connection list
@@ -773,6 +772,8 @@ function showConnectionForm(): void {
       formPort = '27017';
       formUser = '';
       formPass = '';
+      saveState('_fu', '');
+      saveState('_fp', '');
       formUri = '';
       widgetSetHidden(formContainer, 1);
       widgetSetHidden(connListContainer, 0);
