@@ -1780,19 +1780,23 @@ if (!mobile) {
   const appMenu = menuCreate();
   menuAddItem(appMenu, 'About Mango', () => { aboutWindow.show(); });
 
-  // Edit menu — standard actions routed to first responder for CMD+A/C/V/X
-  const editMenu = menuCreate();
-  menuAddStandardAction(editMenu, 'Undo', 'undo:', 'z');
-  menuAddStandardAction(editMenu, 'Redo', 'redo:', 'Cmd+Shift+z');
-  menuAddSeparator(editMenu);
-  menuAddStandardAction(editMenu, 'Cut', 'cut:', 'x');
-  menuAddStandardAction(editMenu, 'Copy', 'copy:', 'c');
-  menuAddStandardAction(editMenu, 'Paste', 'paste:', 'v');
-  menuAddStandardAction(editMenu, 'Select All', 'selectAll:', 'a');
-
   const menuBar = menuBarCreate();
   menuBarAddMenu(menuBar, 'Mango', appMenu);
-  menuBarAddMenu(menuBar, 'Edit', editMenu);
+
+  // macOS requires Edit menu for CMD+A/C/V/X to reach NSTextField.
+  // GTK4 (Linux) and Win32 (Windows) handle Ctrl+C/V/A natively.
+  if (__platform__ === 0) {
+    const editMenu = menuCreate();
+    menuAddStandardAction(editMenu, 'Undo', 'undo:', 'z');
+    menuAddStandardAction(editMenu, 'Redo', 'redo:', 'Cmd+Shift+z');
+    menuAddSeparator(editMenu);
+    menuAddStandardAction(editMenu, 'Cut', 'cut:', 'x');
+    menuAddStandardAction(editMenu, 'Copy', 'copy:', 'c');
+    menuAddStandardAction(editMenu, 'Paste', 'paste:', 'v');
+    menuAddStandardAction(editMenu, 'Select All', 'selectAll:', 'a');
+    menuBarAddMenu(menuBar, 'Edit', editMenu);
+  }
+
   menuBarAttach(menuBar);
 }
 
