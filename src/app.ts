@@ -498,6 +498,7 @@ function refreshConnectionList(): void {
   if (connectionNames.length === 0) {
     // Welcome card with warm styling
     const welcomeCard = VStack(16, []);
+    stackSetDistribution(welcomeCard, -1); // GravityAreas — prevent children from expanding
     widgetSetBackgroundColor(welcomeCard, sfR, sfG, sfB, 1.0);
     setCornerRadius(welcomeCard, 14);
     setPadding(welcomeCard, mobile ? 20 : 32, mobile ? 16 : 36, mobile ? 16 : 28, mobile ? 16 : 36);
@@ -538,11 +539,13 @@ function refreshConnectionList(): void {
     widgetSetBackgroundColor(ctaBtn, moR, moG, moB, 1.0);
     setCornerRadius(ctaBtn, 8);
     setPadding(ctaBtn, 12, 20, 12, 20);
+    const ctaRow = HStack(0, [ctaBtn, Spacer()]);
+    widgetSetHugging(ctaRow, 750);
 
     widgetAddChild(welcomeCard, welcomeTitle);
     widgetAddChild(welcomeCard, welcomeHint);
     widgetAddChild(welcomeCard, pillGrid);
-    widgetAddChild(welcomeCard, ctaBtn);
+    widgetAddChild(welcomeCard, ctaRow);
 
     // First-launch analytics notice
     if (!getState('analyticsNoticeShown')) {
@@ -557,6 +560,7 @@ function refreshConnectionList(): void {
 
     widgetAddChild(connListContainer, welcomeCard);
     widgetMatchParentWidth(welcomeCard);
+    widgetSetHugging(welcomeCard, 750);
     return;
   }
 
@@ -818,6 +822,8 @@ refreshConnectionList();
 // --- Hero banner (full-width via ScrollView Width alignment) ---
 const heroLogo = ImageFile(mobile ? 'assets/mango-app-icon-40.png' : 'assets/mango-app-icon-44.png');
 heroLogo.setSize(mobile ? 40 : 44, mobile ? 40 : 44);
+widgetSetWidth(heroLogo, mobile ? 40 : 44);
+widgetSetHeight(heroLogo, mobile ? 40 : 44);
 
 const heroTitle = Text('Mango');
 textSetFontSize(heroTitle, mobile ? 28 : 38);
@@ -861,6 +867,8 @@ widgetMatchParentWidth(formContainer);
 
 // All content in ScrollView — hero + body
 const connContent = VStack(0, [heroBox, connBody]);
+stackSetDistribution(connContent, -1); // GravityAreas — children keep intrinsic height inside ScrollView
+stackSetDistribution(connBody, -1);
 
 const connectionScreen = ScrollView();
 scrollviewSetChild(connectionScreen, connContent);
@@ -869,6 +877,8 @@ widgetSetBackgroundColor(connectionScreen, bgR, bgG, bgB, 1.0);
 // Force hero to fill full width
 widgetMatchParentWidth(heroBox);
 widgetMatchParentWidth(connBody);
+widgetSetHugging(heroBox, 750);
+widgetSetHugging(connBody, 750);
 
 // ============================================================
 //  BROWSER SCREEN
@@ -922,6 +932,8 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
 // Browser toolbar — logo + connection name + status
 const browserLogo = ImageFile('assets/mango-app-icon-24.png');
 browserLogo.setSize(24, 24);
+widgetSetWidth(browserLogo, 24);
+widgetSetHeight(browserLogo, 24);
 
 const browserTitle = Text('Mango');
 textSetFontSize(browserTitle, 18);
@@ -1021,12 +1033,9 @@ async function showEditView(docJson: string): Promise<void> {
   ed.setGutterFgColor(tsR, tsG, tsB);
   ed.setCursorColor(moR, moG, moB);
   ed.setSelectionColor(moR, moG, moB, 0.2);
-  // Wrap editor in a fixed-height container (embedded NSViews resist height constraints)
-  const editorBox = VStack(0, []);
-  widgetSetHeight(editorBox, 200);
-  widgetAddChild(editorBox, jsonEditor.widget);
-  widgetMatchParentWidth(jsonEditor.widget);
-  widgetMatchParentHeight(jsonEditor.widget);
+  // Editor widget has fills_remaining=true (from embedNSView), so it naturally
+  // absorbs remaining space in the editCard VStack with Fill distribution.
+  // No wrapper needed — adding directly ensures it's the fill target.
 
   const saveBtn = makePrimaryBtn(t('Save Changes'), async () => {
     showStatus(t('Saving...'), false);
@@ -1039,6 +1048,7 @@ async function showEditView(docJson: string): Promise<void> {
     const updateStr = '{"$set":' + compactJson + '}';
     await updateDocument(activeDbName, activeCollName, idFilter, updateStr);
     showStatus(t('Document saved'), false);
+    saveState('lastEditDoc', '');
     // Switch back to doc list
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
@@ -1054,6 +1064,7 @@ async function showEditView(docJson: string): Promise<void> {
     } else {
       showStatus(t('Delete failed'), true);
     }
+    saveState('lastEditDoc', '');
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
     const result = await queryCollection(activeDbName, activeCollName, lastQueryFilter);
@@ -1061,6 +1072,7 @@ async function showEditView(docJson: string): Promise<void> {
   });
 
   const backBtn = makeGhostBtn(t('Back to results'), () => {
+    saveState('lastEditDoc', '');
     widgetSetHidden(editContainer, 1);
     widgetSetHidden(browserBody, 0);
   });
@@ -1070,17 +1082,17 @@ async function showEditView(docJson: string): Promise<void> {
   widgetSetBackgroundColor(editCard, sfR, sfG, sfB, 1.0);
   setCornerRadius(editCard, 12);
   setPadding(editCard, 16, 20, 16, 20);
+  const buttonRow = HStack(8, [deleteBtn, Spacer(), backBtn, saveBtn]);
   widgetAddChild(editCard, editHeader);
   widgetAddChild(editCard, Divider());
   widgetAddChild(editCard, fieldLabel);
-  widgetAddChild(editCard, editorBox);
-  widgetAddChild(editCard, HStack(8, [deleteBtn, Spacer(), backBtn, saveBtn]));
+  widgetAddChild(editCard, jsonEditor.widget);
+  widgetAddChild(editCard, buttonRow);
 
-  // editContainer is full-height (HStack .fill), so put card at top + spacer absorbs rest
+  // editContainer has Fill distribution — editCard fills remaining space
+  // (widgetSetHugging doesn't work inside function bodies due to Perry codegen bug)
   widgetAddChild(editContainer, editCard);
-  widgetMatchParentWidth(editCard); // fill the available width so buttons aren't clipped
-  widgetSetHugging(editCard, 750); // card stays compact vertically
-  widgetAddChild(editContainer, Spacer());
+  widgetMatchParentWidth(editCard);
 }
 
 // --- Document list ---
@@ -1149,7 +1161,7 @@ function displayDocs(jsonStr: string): void {
     // Header: _id + delete/edit buttons
     const idLabel = makeMonoMuted(idShort, 10);
 
-    const editBtn = Button('Edit', async () => { await showEditView(docJsonStr); });
+    const editBtn = Button('Edit', async () => { saveState('lastEditDoc', docJsonStr); await showEditView(docJsonStr); });
     buttonSetBordered(editBtn, 0);
     buttonSetTextColor(editBtn, moR, moG, moB, 1.0);
 
@@ -1683,6 +1695,12 @@ async function restoreLastSession(): Promise<void> {
     textfieldSetString(dbField, lastDb);
     textfieldSetString(collField, lastColl);
     await runQuery(lastDb, lastColl, '{}');
+
+    // Restore edit view if a document was being edited
+    const lastEditDoc = getState('lastEditDoc');
+    if (lastEditDoc) {
+      await showEditView(lastEditDoc);
+    }
   }
 }
 // --- Screenshot mode ---
