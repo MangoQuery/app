@@ -904,12 +904,13 @@ const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
     try { await mongoClient.close(); } catch (e: any) {}
     mongoClient = null;
   }
-  // Clear sidebar state
+  // Clear sidebar state (don't call renderSidebar — crashes due to Perry NaN-boxing
+  // bug #13, and sidebar isn't visible on screen 0 anyway)
   sidebarDbNames = [];
   expandedDbIdx = -1;
   collDbIdx = [];
   collNames = [];
-  renderSidebar();
+  widgetClearChildren(sidebarContainer);
   saveState('lastConnId', '');
   saveState('lastConnUri', '');
   saveState('lastConnName', '');
