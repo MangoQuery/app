@@ -26,6 +26,7 @@ ignore = [
 
 [macos]
 bundle_id = "com.skelpo.mango"
+category = "public.app-category.developer-tools"
 distribute = "both"
 encryption_exempt = true
 entitlements = [
