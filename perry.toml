@@ -1,8 +1,8 @@
 [project]
-build_number = 17
+build_number = 18
 entry = "src/app.ts"
 name = "Mango"
-version = "1.1.20"
+version = "1.1.21"
 
 [project.icons]
 source = "assets/icon.png"
