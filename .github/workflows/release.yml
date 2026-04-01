@@ -136,10 +136,16 @@ jobs:
       - name: Publish Linux
         run: perry publish linux
 
-      - name: Rename and upload artifact
+      - name: Inject assets into tarball and rename
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          mv dist/Mango-*.tar.gz "dist/Mango-${VERSION}-linux-x86_64.tar.gz"
+          TARBALL=$(find dist -name "Mango-*.tar.gz" -size +0c | head -1)
+          TMPDIR=$(mktemp -d)
+          tar xzf "$TARBALL" -C "$TMPDIR"
+          BIN_DIR=$(find "$TMPDIR" -type d -name bin | head -1)
+          cp -r assets "$BIN_DIR/assets"
+          tar czf "dist/Mango-${VERSION}-linux-x86_64.tar.gz" -C "$TMPDIR" .
+          rm -rf "$TMPDIR"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
