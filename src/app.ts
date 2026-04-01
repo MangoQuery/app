@@ -1587,7 +1587,8 @@ if (mobile) {
 }
 
 // Header card with centered logo, title, tagline
-const infoLogoRow = HStack(16, [infoLogo, VStack(4, [infoTitle, infoVersion])]);
+const infoTitleGroup = VStack(4, [infoTitle, infoVersion]);
+const infoLogoRow = HStack(16, [infoLogo, infoTitleGroup]);
 if (mobile) stackSetAlignment(infoLogoRow, 0); // Fill — prevent VStack child from collapsing on Android
 const infoHeaderCard = VStack(12, [
   infoLogoRow,
@@ -1618,8 +1619,9 @@ buttonSetBordered(backBtn, 0);
 buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
 if (mobile) setPadding(backBtn, 8, 4, 8, 4);
 
+const backRow = HStack(8, [backBtn, Spacer()]);
 const infoBody = VStack(12, [
-  HStack(8, [backBtn, Spacer()]),
+  backRow,
   infoHeaderCard,
   settingsHeader,
   infoSettingsCard,
