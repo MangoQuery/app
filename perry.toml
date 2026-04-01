@@ -1,5 +1,5 @@
 [project]
-build_number = 19
+build_number = 20
 entry = "src/app.ts"
 name = "Mango"
 version = "1.1.22"
