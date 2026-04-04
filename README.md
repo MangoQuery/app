@@ -12,6 +12,12 @@
   <em>MongoDB, finally fast.</em>
 </p>
 
+<p align="center">
+  <img src="screenshots/query-browser.png" width="49%" alt="Query browser">
+  &nbsp;
+  <img src="screenshots/document-editor.png" width="49%" alt="Document editor">
+</p>
+
 ---
 
 Mango is a native desktop MongoDB client written in TypeScript and compiled to native ARM64/x86_64 using [Perry](https://github.com/nicholasgasior/perry). No Electron, no JVM, no runtime overhead — just a small, fast binary that talks directly to your database.
