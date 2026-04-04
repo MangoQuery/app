@@ -5,7 +5,7 @@
 <h1 align="center">Mango</h1>
 
 <p align="center">
-  <strong>A fast, native MongoDB GUI — built with <a href="https://github.com/nicholasgasior/perry">Perry</a></strong>
+  <strong>A fast, native MongoDB GUI — built with <a href="https://github.com/PerryTS">Perry</a></strong>
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ---
 
-Mango is a native desktop MongoDB client written in TypeScript and compiled to native ARM64/x86_64 using [Perry](https://github.com/nicholasgasior/perry). No Electron, no JVM, no runtime overhead — just a small, fast binary that talks directly to your database.
+Mango is a native desktop MongoDB client written in TypeScript and compiled to native ARM64/x86_64 using [Perry](https://github.com/PerryTS). No Electron, no JVM, no runtime overhead — just a small, fast binary that talks directly to your database.
 
 ## Features
 
@@ -37,7 +37,7 @@ Mango is a native desktop MongoDB client written in TypeScript and compiled to n
 
 ### Prerequisites
 
-- [Perry](https://github.com/nicholasgasior/perry) compiler
+- [Perry](https://github.com/PerryTS) compiler
 - [Bun](https://bun.sh) (for type-checking and running tests)
 - A running MongoDB instance
 
