@@ -31,7 +31,7 @@ Mango is a native desktop MongoDB client written in TypeScript and compiled to n
 - **Document CRUD** — Insert, update, delete, and duplicate documents.
 - **Index listing** — View indexes with key, uniqueness, and size info.
 - **Dark & light mode** — Follows system preference automatically.
-- **Cross-platform** — Targets macOS (AppKit), iOS (UIKit), Android (Views), Linux (GTK4), and Windows (Win32).
+- **Cross-platform** — Targets macOS (AppKit), iOS (UIKit), Android (Views), Linux (GTK4), Windows (Win32), and the **browser** (WebAssembly + DOM via Perry's `--target web`).
 
 ## Getting Started
 
@@ -53,6 +53,19 @@ perry compile src/app.ts --output mango
 # Run
 ./mango
 ```
+
+### Run in the browser (WebAssembly)
+
+```bash
+# Compile to a single self-contained HTML+WASM file (~4 MB)
+perry compile src/app.ts --target web -o dist/mango.html
+
+# Serve over HTTP (file:// won't work — fetch() hits CORS errors)
+python3 -m http.server 8765 -d dist
+open http://localhost:8765/mango.html
+```
+
+The web build is the same source code, compiled by Perry to WebAssembly with a JavaScript bridge that maps every Perry widget to a DOM element. SQLite-backed connection storage degrades to an in-memory transient store on web; the Hone code editor's native bindings degrade to no-ops; and you'll need to point at a Mango Server proxy if you want to talk to MongoDB from the browser. Everything else (UI, navigation, query builder, document viewer, dark/light mode, i18n) works the same as the native builds.
 
 ### Development
 
