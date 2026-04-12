@@ -98,7 +98,7 @@ perry.toml               # Perry project manifest
 
 ## How It Works
 
-Perry compiles TypeScript to native machine code via SWC (parsing) and Cranelift (codegen). Platform UI is rendered through native frameworks — AppKit on macOS, UIKit on iOS, GTK4 on Linux, etc. MongoDB access uses Perry's built-in `mongodb` package, which wraps the Rust MongoDB driver directly in the compiled binary.
+Perry compiles TypeScript to native machine code via SWC (parsing) and LLVM (codegen). Platform UI is rendered through native frameworks — AppKit on macOS, UIKit on iOS, GTK4 on Linux, etc. MongoDB access uses Perry's built-in `mongodb` package, which wraps the Rust MongoDB driver directly in the compiled binary.
 
 The result is a ~7 MB self-contained binary with sub-100 MB RAM usage and instant cold start.
 

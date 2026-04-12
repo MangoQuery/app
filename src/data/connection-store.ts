@@ -5,7 +5,7 @@ const isWeb = __platform__ === 5;
 
 // Web: localStorage-based persistence (no SQLite in browser)
 // These functions are only called inside isWeb guards, and __platform__ is a compile-time
-// constant — Cranelift eliminates dead branches, so this code is stripped from native builds.
+// constant — LLVM eliminates dead branches, so this code is stripped from native builds.
 let webTransient = false;
 export function setWebTransient(t: boolean): void { webTransient = t; }
 
