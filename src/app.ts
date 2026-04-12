@@ -1620,6 +1620,7 @@ buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
 if (mobile) setPadding(backBtn, 8, 4, 8, 4);
 
 const backRow = HStack(8, [backBtn, Spacer()]);
+if (!mobile) widgetSetHidden(backRow, 1);
 const infoBody = VStack(12, [
   backRow,
   infoHeaderCard,
