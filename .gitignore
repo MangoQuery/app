@@ -6,6 +6,7 @@ _perry_failed_stubs.o
 
 # Compiled binaries
 mango
+Mango.exe
 app
 app_debug
 mango-android
@@ -47,7 +48,16 @@ Mango-orig
 mango-test
 res/
 __pycache__/
+__perry_js_bundle.js
 test-screenshots/
+test_app_nodb
+test_mango_lite
+test_widgets
+
+# Debug / dev files
+mango_debug.log
+layout_debug.txt
+screenshot*.png
 
 # Internal docs
 mango-product-spec.md

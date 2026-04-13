@@ -1619,16 +1619,19 @@ buttonSetBordered(backBtn, 0);
 buttonSetTextColor(backBtn, moR, moG, moB, 1.0);
 if (mobile) setPadding(backBtn, 8, 4, 8, 4);
 
-const backRow = HStack(8, [backBtn, Spacer()]);
-if (!mobile) widgetSetHidden(backRow, 1);
-const infoBody = VStack(12, [
-  backRow,
+const infoBodyMobile = VStack(12, [
+  HStack(8, [backBtn, Spacer()]),
   infoHeaderCard,
   settingsHeader,
   infoSettingsCard,
 ]);
-const infoPadH = mobile ? 16 : 280;
-setPadding(infoBody, mobile ? 20 : 40, infoPadH, 32, infoPadH);
+const infoBody = mobile ? infoBodyMobile : VStack(12, [
+  infoHeaderCard,
+  settingsHeader,
+  infoSettingsCard,
+]);
+const infoPadH = mobile ? 16 : 24;
+setPadding(infoBody, mobile ? 20 : 28, infoPadH, 32, infoPadH);
 widgetMatchParentWidth(infoHeaderCard);
 widgetMatchParentWidth(infoSettingsCard);
 
