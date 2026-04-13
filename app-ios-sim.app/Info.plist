@@ -7,25 +7,72 @@
     <key>CFBundleIdentifier</key>
     <string>com.skelpo.mango</string>
     <key>CFBundleName</key>
-    <string>Mango</string>
+    <string>app-ios-sim</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>25</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.1.28</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>MinimumOSVersion</key>
     <string>17.0</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array><string>iPhoneOS</string></array>
+    <key>DTPlatformName</key>
+    <string>iphoneos</string>
+    <key>DTPlatformVersion</key>
+    <string>26.4</string>
+    <key>DTSDKName</key>
+    <string>iphoneos26.4</string>
+    <key>DTPlatformBuild</key>
+    <string>23E237</string>
+    <key>DTSDKBuild</key>
+    <string>23E237</string>
+    <key>DTXcode</key>
+    <string>2640</string>
+    <key>DTXcodeBuild</key>
+    <string>17E192</string>
+    <key>DTCompiler</key>
+    <string>com.apple.compilers.llvm.clang.1_0</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array><string>arm64</string></array>
+    <key>CFBundleIcons</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AppIcon60x60</string>
+            </array>
+        </dict>
+    </dict>
+    <key>CFBundleIcons~ipad</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AppIcon76x76</string>
+            </array>
+        </dict>
+    </dict>
     <key>UIDeviceFamily</key>
     <array>
         <integer>1</integer>
         <integer>2</integer>
     </array>
-    <key>UILaunchStoryboardName</key>
-    <string>LaunchScreen</string>
-    <key>UIRequiresFullScreen</key>
-    <true/>
+    <key>UILaunchScreen</key>
+    <dict/>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UISupportedInterfaceOrientations~ipad</key>
     <array>
@@ -34,7 +81,7 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>UIApplicationSceneManifest</key>
+        <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
@@ -51,6 +98,10 @@
             </array>
         </dict>
     </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>This app uses the camera to identify colors.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app uses the microphone to measure sound levels.</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
 </dict>
