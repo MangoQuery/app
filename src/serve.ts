@@ -1,7 +1,8 @@
 import fastify from 'fastify';
 import { WebSocketServer } from 'ws';
 import { Command } from 'commander';
-import { MongoClient } from 'mongodb';
+import { MongoClient } from '@perryts/mongodb';
+import { bsonStringify, bsonParse } from './data/bson-json';
 
 // --- CLI ---
 const program = new Command();
@@ -86,58 +87,61 @@ wss.on('connection', (wsConn: any) => {
     try {
       if (action === 'connect') {
         if (mongoClient) {
-          try { await mongoClient.close(); } catch (e: any) {}
+          try { mongoClient.close(); } catch (e: any) {}
         }
         mongoClient = await MongoClient.connect(params.uri);
-        // Validate by listing databases
-        await mongoClient.listDatabases();
+        // Validate by issuing a ping.
+        await mongoClient.db('admin').command({ ping: 1 });
         reply(true);
 
       } else if (action === 'disconnect') {
         if (mongoClient) {
-          await mongoClient.close();
+          mongoClient.close();
           mongoClient = null;
         }
         reply(true);
 
       } else if (action === 'listDatabases') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const result = await mongoClient.listDatabases();
-        reply(result);
+        const r = await mongoClient.db('admin').command({ listDatabases: 1, nameOnly: true });
+        const names = ((r.databases as any[]) || []).map((d: any) => d.name);
+        reply(names);
 
       } else if (action === 'listCollections') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const db = mongoClient.db(params.dbName);
-        const result = await db.listCollections();
-        reply(result);
+        const r = await mongoClient.db(params.dbName).command({ listCollections: 1, nameOnly: true });
+        const batch = r.cursor && Array.isArray(r.cursor.firstBatch) ? r.cursor.firstBatch : [];
+        const names = batch.map((c: any) => c.name);
+        reply(names);
 
       } else if (action === 'find') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const db = mongoClient.db(params.dbName);
-        const coll = db.collection(params.collName);
-        const docs = await coll.find(params.filter || '{}');
-        reply(docs);
+        const filter = params.filter ? bsonParse(params.filter) : {};
+        const coll = mongoClient.db(params.dbName).collection(params.collName);
+        const docs = await coll.find(filter).toArray();
+        reply(bsonStringify(docs));
 
       } else if (action === 'insertOne') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const db = mongoClient.db(params.dbName);
-        const coll = db.collection(params.collName);
-        const result = await coll.insertOne(params.doc);
-        reply(result);
+        const doc = typeof params.doc === 'string' ? bsonParse(params.doc) : params.doc;
+        const coll = mongoClient.db(params.dbName).collection(params.collName);
+        const result = await coll.insertOne(doc);
+        reply(bsonStringify(result));
 
       } else if (action === 'updateOne') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const db = mongoClient.db(params.dbName);
-        const coll = db.collection(params.collName);
-        const result = await coll.updateOne(params.filter, params.update);
-        reply(result);
+        const filter = bsonParse(params.filter);
+        const update = bsonParse(params.update);
+        const coll = mongoClient.db(params.dbName).collection(params.collName);
+        const result = await coll.updateOne(filter, update);
+        reply(result.modifiedCount);
 
       } else if (action === 'deleteOne') {
         if (!mongoClient) { reply(null, 'Not connected'); return; }
-        const db = mongoClient.db(params.dbName);
-        const coll = db.collection(params.collName);
-        const result = await coll.deleteOne(params.filter);
-        reply(result);
+        const filter = bsonParse(params.filter);
+        const coll = mongoClient.db(params.dbName).collection(params.collName);
+        const result = await coll.deleteOne(filter);
+        reply(result.deletedCount);
 
       } else {
         reply(null, 'Unknown action: ' + action);

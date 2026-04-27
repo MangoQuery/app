@@ -18,7 +18,8 @@ import {
 } from 'perry/ui';
 import { isDarkMode, keychainSave, keychainGet, keychainDelete, getDeviceIdiom } from 'perry/system';
 import { t } from 'perry/i18n';
-import { MongoClient } from 'mongodb';
+import { MongoClient } from '@perryts/mongodb';
+import { bsonStringify, bsonParse } from './data/bson-json';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
 import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
 import { trackAppLaunch, trackConnect, trackQuery } from './data/telemetry';
@@ -313,17 +314,12 @@ async function connectToMongo(uri: string): Promise<boolean> {
   }
   try {
     const client = await MongoClient.connect(uri);
-    // Validate the connection by listing databases
-    const result = await client.listDatabases();
-    if (typeof result === 'string') {
-      // Connection works
-      mongoClient = client;
-      currentConnUri = uri;
-      trackConnect();
-      return true;
-    }
-    lastConnError = 'Connected but could not list databases';
-    return false;
+    // Validate the connection by issuing a ping.
+    await client.db('admin').command({ ping: 1 });
+    mongoClient = client;
+    currentConnUri = uri;
+    trackConnect();
+    return true;
   } catch (e: any) {
     const msg = (e as any).message || e;
     lastConnError = typeof msg === 'string' ? msg : 'Connection failed';
@@ -335,11 +331,10 @@ async function queryCollection(dbName: string, collName: string, filter: string)
   if (isWeb) { try { const r = await _wsSend('find', { dbName, collName, filter }); return typeof r === 'string' ? r : JSON.stringify(r); } catch (e: any) { return '{"error":"' + (e.message || 'query failed') + '"}'; } }
   if (!mongoClient) return '{"error":"not connected"}';
   try {
-    const db = mongoClient.db(dbName);
-    const coll = db.collection(collName);
-    const docs = await coll.find(filter || '{}');
-    if (typeof docs === 'string') return docs;
-    return JSON.stringify(docs);
+    const filterDoc = filter ? bsonParse(filter) : {};
+    const coll = mongoClient.db(dbName).collection(collName);
+    const docs = await coll.find(filterDoc).toArray();
+    return bsonStringify(docs);
   } catch (e: any) {
     const msg = (e.message || 'query failed').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     return '{"error":"' + msg + '"}';
@@ -350,9 +345,11 @@ async function updateDocument(dbName: string, collName: string, filter: string, 
   if (isWeb) { try { const r = await _wsSend('updateOne', { dbName, collName, filter, update }); return typeof r === 'number' ? r : 0; } catch (e: any) { return 0; } }
   if (!mongoClient) return 0;
   try {
-    const db = mongoClient.db(dbName);
-    const coll = db.collection(collName);
-    return await coll.updateOne(filter, update);
+    const filterDoc = bsonParse(filter);
+    const updateDoc = bsonParse(update);
+    const coll = mongoClient.db(dbName).collection(collName);
+    const result = await coll.updateOne(filterDoc, updateDoc);
+    return result.modifiedCount;
   } catch (e: any) {
     showStatus(t('Update failed') + ': ' + (e.message || 'unknown error'), true);
     return 0;
@@ -363,9 +360,10 @@ async function deleteDocument(dbName: string, collName: string, filter: string):
   if (isWeb) { try { const r = await _wsSend('deleteOne', { dbName, collName, filter }); return typeof r === 'number' ? r : 0; } catch (e: any) { return 0; } }
   if (!mongoClient) return 0;
   try {
-    const db = mongoClient.db(dbName);
-    const coll = db.collection(collName);
-    return await coll.deleteOne(filter);
+    const filterDoc = bsonParse(filter);
+    const coll = mongoClient.db(dbName).collection(collName);
+    const result = await coll.deleteOne(filterDoc);
+    return result.deletedCount;
   } catch (e: any) {
     showStatus(t('Delete failed') + ': ' + (e.message || 'unknown error'), true);
     return 0;
@@ -376,12 +374,15 @@ async function listDatabases(): Promise<string[]> {
   if (isWeb) { try { const r = await _wsSend('listDatabases', {}); if (Array.isArray(r)) return r; if (typeof r === 'string') { const p = JSON.parse(r); if (Array.isArray(p)) return p; } return []; } catch (e: any) { return []; } }
   if (!mongoClient) return [];
   try {
-    const result = await mongoClient.listDatabases();
-    if (typeof result === 'string') {
-      const parsed = JSON.parse(result);
-      if (Array.isArray(parsed)) return parsed;
+    const reply = await mongoClient.db('admin').command({ listDatabases: 1, nameOnly: true });
+    const dbs = (reply as any).databases;
+    if (!Array.isArray(dbs)) return [];
+    const names: string[] = [];
+    for (let i = 0; i < dbs.length; i++) {
+      const n = (dbs[i] as any).name;
+      if (typeof n === 'string') names.push(n);
     }
-    return [];
+    return names;
   } catch (e: any) {
     showStatus(t('Failed to list databases') + ': ' + (e.message || 'unknown error'), true);
     return [];
@@ -392,13 +393,15 @@ async function listCollections(dbName: string): Promise<string[]> {
   if (isWeb) { try { const r = await _wsSend('listCollections', { dbName }); if (Array.isArray(r)) return r; if (typeof r === 'string') { const p = JSON.parse(r); if (Array.isArray(p)) return p; } return []; } catch (e: any) { return []; } }
   if (!mongoClient) return [];
   try {
-    const db = mongoClient.db(dbName);
-    const result = await db.listCollections();
-    if (typeof result === 'string') {
-      const parsed = JSON.parse(result);
-      if (Array.isArray(parsed)) return parsed;
+    const reply = await mongoClient.db(dbName).command({ listCollections: 1, nameOnly: true });
+    const cur = (reply as any).cursor;
+    const batch = cur && Array.isArray(cur.firstBatch) ? cur.firstBatch : [];
+    const names: string[] = [];
+    for (let i = 0; i < batch.length; i++) {
+      const n = (batch[i] as any).name;
+      if (typeof n === 'string') names.push(n);
     }
-    return [];
+    return names;
   } catch (e: any) {
     showStatus(t('Failed to list collections') + ': ' + (e.message || 'unknown error'), true);
     return [];
@@ -911,7 +914,7 @@ textSetColor(connLabel, sgR, sgG, sgB, 1.0);
 
 const disconnectBtn = makeDangerBtn(t('Disconnect'), async () => {
   if (mongoClient) {
-    try { await mongoClient.close(); } catch (e: any) {}
+    try { mongoClient.close(); } catch (e: any) {}
     mongoClient = null;
   }
   // Clear sidebar state (don't call renderSidebar — crashes due to Perry NaN-boxing
@@ -1138,7 +1141,7 @@ function displayDocs(jsonStr: string): void {
   // Pre-process documents (parallel for large result sets, sequential for small)
   let processed: any[];
   if (docArray.length > 10) {
-    processed = parallelMap(docArray, processDocForDisplay);
+    processed = parallelMap(docArray, (d) => processDocForDisplay(d));
   } else {
     processed = [];
     for (let p = 0; p < docArray.length; p++) {

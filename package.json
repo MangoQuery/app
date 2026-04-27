@@ -33,6 +33,6 @@
   "license": "MIT",
   "dependencies": {
     "@honeide/editor": "file:../hone/hone-editor",
-    "mongodb": "^7.1.0"
+    "@perryts/mongodb": "file:../perry/mongodb"
   }
 }

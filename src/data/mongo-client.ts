@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from '@perryts/mongodb';
 
 export interface QueryOptions {
   filter: Record<string, unknown>;
@@ -57,8 +57,9 @@ export class MangoClient {
 
   async connect(uri: string): Promise<void> {
     const start = Date.now();
-    const client = new MongoClient(uri);
-    await client.connect();
+    const client = await MongoClient.connect(uri);
+    // Validate the connection with a ping before we report success.
+    await client.db('admin').command({ ping: 1 });
     this.client = client;
     this._latencyMs = Date.now() - start;
     this._isConnected = true;
@@ -70,7 +71,7 @@ export class MangoClient {
       this.client = null;
       this._isConnected = false;
       this._latencyMs = 0;
-      try { await client.close(); } catch (_) {}
+      try { client.close(); } catch (_) {}
     }
   }
 
@@ -86,7 +87,7 @@ export class MangoClient {
   async listDatabases(): Promise<DatabaseInfo[]> {
     this.ensureConnected();
     const result = await this.client.db('admin').command({ listDatabases: 1 });
-    return result.databases.map((db: any) => ({
+    return (result.databases as any[]).map((db: any) => ({
       name: db.name,
       sizeOnDisk: db.sizeOnDisk,
       empty: db.empty,
@@ -95,8 +96,11 @@ export class MangoClient {
 
   async listCollections(dbName: string): Promise<CollectionInfo[]> {
     this.ensureConnected();
-    const collections = await this.client.db(dbName).listCollections().toArray();
-    return collections.map((c: any) => ({
+    const result = await this.client.db(dbName).command({ listCollections: 1 });
+    const batch = result.cursor && Array.isArray(result.cursor.firstBatch)
+      ? result.cursor.firstBatch as any[]
+      : [];
+    return batch.map((c: any) => ({
       name: c.name,
       type: c.type,
     }));
@@ -125,7 +129,9 @@ export class MangoClient {
     this.ensureConnected();
     const coll = this.client.db(dbName).collection(collName);
     const result = await coll.insertOne(doc);
-    return result.insertedId.toString();
+    const id = result.insertedId;
+    if (id instanceof ObjectId) return id.toHexString();
+    return String(id);
   }
 
   async updateDocument(dbName: string, collName: string, id: unknown, doc: Record<string, unknown>): Promise<boolean> {
@@ -157,7 +163,9 @@ export class MangoClient {
     if (!doc) throw new Error('Document not found');
     const { _id, ...rest } = doc;
     const result = await coll.insertOne(rest);
-    return result.insertedId.toString();
+    const insertedId = result.insertedId;
+    if (insertedId instanceof ObjectId) return insertedId.toHexString();
+    return String(insertedId);
   }
 
   async getCollectionStats(dbName: string, collName: string): Promise<CollectionStats> {
@@ -175,12 +183,14 @@ export class MangoClient {
 
   async listIndexes(dbName: string, collName: string): Promise<IndexInfo[]> {
     this.ensureConnected();
-    const coll = this.client.db(dbName).collection(collName);
-    const indexes = await coll.indexes();
+    const reply = await this.client.db(dbName).command({ listIndexes: collName });
+    const batch = reply.cursor && Array.isArray(reply.cursor.firstBatch)
+      ? reply.cursor.firstBatch as any[]
+      : [];
     const stats = await this.client.db(dbName).command({ collStats: collName });
     const indexSizes = stats.indexSizes || {};
 
-    return indexes.map((idx: any) => ({
+    return batch.map((idx: any) => ({
       name: idx.name,
       key: idx.key,
       unique: idx.unique === true || idx.name === '_id_',
