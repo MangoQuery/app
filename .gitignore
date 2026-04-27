@@ -7,12 +7,14 @@ _perry_failed_stubs.o
 # Compiled binaries
 mango
 Mango.exe
+Mango-*
 app
 app_debug
 mango-android
 screenshot-mac
 screenshot-ios-sim
 libhone_editor_android.so
+telemetry
 
 # Runtime data
 *.db
