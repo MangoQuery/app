@@ -21,7 +21,7 @@ import { t } from 'perry/i18n';
 import { MongoClient } from '@perryts/mongodb';
 import { bsonStringify, bsonParse } from './data/bson-json';
 import { HoneCodeEditorWidget } from '@honeide/editor/perry';
-import { getAllConnections, createConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
+import { getAllConnections, createConnection, updateConnection, deleteConnection, saveState, getState, setWebTransient } from './data/connection-store';
 import { trackAppLaunch, trackConnect, trackQuery } from './data/telemetry';
 import { parallelMap, spawn } from 'perry/thread';
 import { prettyPrintJson, extractIdShort, extractFields, processDocForDisplay } from './data/json-utils';
@@ -148,6 +148,9 @@ let formPort = '27017';
 let formUser = '';
 let formPass = '';
 let formUri = '';
+// Empty string = creating a new connection. Non-empty = editing the existing
+// row with this id; Save updates instead of inserts.
+let editingConnId = '';
 
 let currentDbName = '';
 let currentCollName = '';
@@ -646,14 +649,18 @@ function refreshConnectionList(): void {
       widgetSetHidden(confirmNo, 0);
     });
 
+    const editBtn = Button(t('Edit'), () => { showConnectionForm(connId); });
+    buttonSetBordered(editBtn, 0);
+    buttonSetTextColor(editBtn, tsR, tsG, tsB, 1.0);
+
     let card: any;
     if (mobile) {
       // Mobile: stack vertically — info on top, buttons below
-      const btnRow = HStack(8, [deleteBtn, Spacer(), connectBtn]);
+      const btnRow = HStack(8, [editBtn, deleteBtn, Spacer(), connectBtn]);
       const confirmRow = HStack(8, [confirmLabel, confirmYes, confirmNo]);
       card = VStack(10, [info, confirmRow, btnRow]);
     } else {
-      const row = HStack(12, [accentBar, info, Spacer(), confirmLabel, confirmYes, confirmNo, deleteBtn, connectBtn]);
+      const row = HStack(12, [accentBar, info, Spacer(), confirmLabel, confirmYes, confirmNo, editBtn, deleteBtn, connectBtn]);
       card = VStack(0, [row]);
     }
     widgetSetBackgroundColor(card, sfR, sfG, sfB, 1.0);
@@ -677,17 +684,86 @@ function refreshConnectionList(): void {
 const formContainer = VStack(12, []);
 widgetSetHidden(formContainer, 1);
 
-function showConnectionForm(): void {
+// Build (uri, displayHost, portNum, name) from the live form fields.
+// Shared by Save and Test so both see the exact same values the user
+// entered (including unsubmitted edits to TextFields).
+function readConnectionForm(
+  nameField: any, hostField: any, portField: any,
+  userField: any, passField: any, uriField: any
+): { uri: string; name: string; displayHost: string; portNum: number } {
+  const nameRaw = textfieldGetString(nameField);
+  const name = (typeof nameRaw === 'string' && nameRaw.length > 0) ? nameRaw : (formName || t('Untitled'));
+  const hostRaw = textfieldGetString(hostField);
+  const host = (typeof hostRaw === 'string' && hostRaw.length > 0) ? hostRaw : (formHost || 'localhost');
+  const portRaw = textfieldGetString(portField);
+  const port = (typeof portRaw === 'string' && portRaw.length > 0) ? portRaw : (formPort || '27017');
+  const userStr = textfieldGetString(userField) + '';
+  const passStr = textfieldGetString(passField) + '';
+  const uriStr = textfieldGetString(uriField) + '';
+
+  let uri = '';
+  if (uriStr.length > 0) {
+    uri = uriStr;
+  } else if (userStr.length > 0 && passStr.length > 0) {
+    uri = 'mongodb://' + userStr + ':' + passStr + '@' + host + ':' + port;
+  } else {
+    uri = 'mongodb://' + host + ':' + port;
+  }
+
+  let displayHost = host;
+  let displayPort = port;
+  const schemeIdx = uri.indexOf('://');
+  if (schemeIdx >= 0) {
+    const afterScheme = uri.substring(schemeIdx + 3);
+    const atIdx = afterScheme.indexOf('@');
+    const hostPart = atIdx >= 0 ? afterScheme.substring(atIdx + 1) : afterScheme;
+    const slashIdx = hostPart.indexOf('/');
+    const hostPortStr = slashIdx >= 0 ? hostPart.substring(0, slashIdx) : hostPart;
+    const colonIdx = hostPortStr.lastIndexOf(':');
+    if (colonIdx >= 0) {
+      displayHost = hostPortStr.substring(0, colonIdx);
+      displayPort = hostPortStr.substring(colonIdx + 1);
+    } else {
+      displayHost = hostPortStr;
+    }
+  }
+
+  let portNum = 27017;
+  if (displayPort.length > 0) {
+    const p = Number(displayPort);
+    if (p > 0) portNum = p;
+  }
+
+  return { uri: uri, name: name, displayHost: displayHost, portNum: portNum };
+}
+
+// Find a profile by id from the loaded list. Returns null when not found.
+function lookupConnection(id: string): any {
+  if (!id || id.length === 0) return null;
+  const all: any = getAllConnections();
+  for (let i = 0; i < all.length; i++) {
+    const p: any = all[i];
+    if (p && p.id === id) return p;
+  }
+  return null;
+}
+
+function showConnectionForm(editId?: string): void {
   widgetClearChildren(formContainer);
   widgetSetHidden(connListContainer, 1);
   widgetSetHidden(formContainer, 0);
+
+  // Resolve edit target (if any). Empty string = new-connection mode.
+  const wantEdit: string = (typeof editId === 'string' && editId.length > 0) ? editId : '';
+  const existing: any = wantEdit.length > 0 ? lookupConnection(wantEdit) : null;
+  editingConnId = existing ? existing.id : '';
 
   const formCard = VStack(12, []);
   widgetSetBackgroundColor(formCard, sfR, sfG, sfB, 1.0);
   setCornerRadius(formCard, 12);
   setPadding(formCard, 20, 24, 20, 24);
 
-  const title = makeLabel('New Connection', 18, true);
+  const title = makeLabel(existing ? t('Edit Connection') : t('New Connection'), 18, true);
 
   const nameLabel = makeSecondary(t('Name'), 11);
   const nameField = TextField('e.g. Production, Local dev...', (val: string) => { formName = val; });
@@ -709,6 +785,20 @@ function showConnectionForm(): void {
   const uriLabel = makeSecondary(t('Connection String'), 11);
   const uriField = TextField('mongodb+srv://user:pass@cluster.example.com/db', (val: string) => { formUri = val; });
 
+  // Prefill in edit mode. Only the URI field is restored when present —
+  // host/port/name come from the stored row. Username/password aren't
+  // prefilled because they're embedded inside the URI.
+  if (existing) {
+    textfieldSetString(nameField, existing.name || '');
+    textfieldSetString(hostField, existing.host || 'localhost');
+    textfieldSetString(portField, String(existing.port || 27017));
+    textfieldSetString(uriField, existing.connectionString || '');
+    formName = existing.name || '';
+    formHost = existing.host || 'localhost';
+    formPort = String(existing.port || 27017);
+    formUri = existing.connectionString || '';
+  }
+
   // Tab key navigation: name → host → port → user → pass → uri
   textfieldSetNextKeyView(nameField, hostField);
   textfieldSetNextKeyView(hostField, portField);
@@ -716,63 +806,56 @@ function showConnectionForm(): void {
   textfieldSetNextKeyView(userField, passField);
   textfieldSetNextKeyView(passField, uriField);
 
-  const saveBtn = Button('Save Connection', () => {
+  // Test-result label: shown by the Test button to report success/failure
+  // inline without saving. Hidden until first Test press.
+  const testStatus = Text('');
+  textSetFontSize(testStatus, 12);
+  textSetFontFamily(testStatus, uiFont);
+  textSetWraps(testStatus, 0);
+  widgetSetHidden(testStatus, 1);
+
+  const testBtn = Button(t('Test Connection'), async () => {
+    const f = readConnectionForm(nameField, hostField, portField, userField, passField, uriField);
+    textSetString(testStatus, t('Testing...'));
+    textSetColor(testStatus, tmR, tmG, tmB, 1.0);
+    widgetSetHidden(testStatus, 0);
+    const ok = await connectToMongo(f.uri);
+    if (ok) {
+      // Don't keep the test connection live — drop it so Save/Connect
+      // later opens a fresh client. Best-effort close, ignore errors.
+      if (mongoClient) {
+        try { await mongoClient.close(); } catch (e: any) {}
+        mongoClient = null;
+        currentConnUri = '';
+      }
+      textSetString(testStatus, t('Connection OK'));
+      textSetColor(testStatus, 0.13, 0.55, 0.13, 1.0); // green
+    } else {
+      textSetString(testStatus, t('Failed') + ': ' + lastConnError);
+      textSetColor(testStatus, erR, erG, erB, 1.0);
+    }
+  });
+  buttonSetBordered(testBtn, 0);
+  buttonSetTextColor(testBtn, moR, moG, moB, 1.0);
+
+  const saveBtn = Button(existing ? t('Update Connection') : t('Save Connection'), () => {
     try {
-      const nameRaw = textfieldGetString(nameField);
-      const name = (typeof nameRaw === 'string' && nameRaw.length > 0) ? nameRaw : (formName || t('Untitled'));
-      const hostRaw = textfieldGetString(hostField);
-      const host = (typeof hostRaw === 'string' && hostRaw.length > 0) ? hostRaw : (formHost || 'localhost');
-      const portRaw = textfieldGetString(portField);
-      const port = (typeof portRaw === 'string' && portRaw.length > 0) ? portRaw : (formPort || '27017');
-      // Build URI using string concatenation (+) which Perry's codegen handles
-      // correctly for is_string locals. encodeURIComponent and || fail due to
-      // NaN-boxing being stripped (see PerryTS/perry#10, #12).
-      // Read user/pass into string variables via + '' (forces string concat path)
-      const userStr = textfieldGetString(userField) + '';
-      const passStr = textfieldGetString(passField) + '';
-      const uriStr = textfieldGetString(uriField) + '';
+      const f = readConnectionForm(nameField, hostField, portField, userField, passField, uriField);
 
-      let uri = '';
-      if (uriStr.length > 0) {
-        uri = uriStr;
-      } else if (userStr.length > 0 && passStr.length > 0) {
-        // Note: not using encodeURIComponent — it corrupts NaN-boxed strings.
-        // Users with special chars in user/pass should use the URI field instead.
-        uri = 'mongodb://' + userStr + ':' + passStr + '@' + host + ':' + port;
+      let savedId: string;
+      if (editingConnId.length > 0) {
+        updateConnection(editingConnId, {
+          name: f.name, host: f.displayHost, port: f.portNum, connectionString: f.uri,
+        });
+        savedId = editingConnId;
       } else {
-        uri = 'mongodb://' + host + ':' + port;
+        const profile: any = createConnection({
+          name: f.name, host: f.displayHost, port: f.portNum, connectionString: f.uri,
+        });
+        savedId = profile.id;
       }
-
-      // Extract host (without port) from URI for display in connection list
-      let displayHost = host;
-      let displayPort = port;
-      const schemeIdx = uri.indexOf('://');
-      if (schemeIdx >= 0) {
-        const afterScheme = uri.substring(schemeIdx + 3);
-        const atIdx = afterScheme.indexOf('@');
-        const hostPart = atIdx >= 0 ? afterScheme.substring(atIdx + 1) : afterScheme;
-        const slashIdx = hostPart.indexOf('/');
-        const hostPortStr = slashIdx >= 0 ? hostPart.substring(0, slashIdx) : hostPart;
-        const colonIdx = hostPortStr.lastIndexOf(':');
-        if (colonIdx >= 0) {
-          displayHost = hostPortStr.substring(0, colonIdx);
-          displayPort = hostPortStr.substring(colonIdx + 1);
-        } else {
-          displayHost = hostPortStr;
-        }
-      }
-
-      // Parse port number (avoid parseInt which may not work in Perry AOT)
-      let portNum = 27017;
-      if (displayPort.length > 0) {
-        const p = Number(displayPort);
-        if (p > 0) portNum = p;
-      }
-
-      // Create the connection profile in SQLite
-      const profile: any = createConnection({ name: name, host: displayHost, port: portNum, connectionString: uri });
-      // Also try Keychain as backup
-      if (!isWeb) keychainSave('mango-conn-' + profile.id, uri);
+      // Keychain backup of the URI (native only).
+      if (!isWeb) keychainSave('mango-conn-' + savedId, f.uri);
 
       formName = '';
       formHost = 'localhost';
@@ -782,6 +865,7 @@ function showConnectionForm(): void {
       saveState('_fu', '');
       saveState('_fp', '');
       formUri = '';
+      editingConnId = '';
       widgetSetHidden(formContainer, 1);
       widgetSetHidden(connListContainer, 0);
       loadConnections();
@@ -794,6 +878,7 @@ function showConnectionForm(): void {
   buttonSetTextColor(saveBtn, moR, moG, moB, 1.0);
 
   const cancelBtn = makeGhostBtn(t('Cancel'), () => {
+    editingConnId = '';
     widgetSetHidden(formContainer, 1);
     widgetSetHidden(connListContainer, 0);
   });
@@ -813,7 +898,8 @@ function showConnectionForm(): void {
   widgetAddChild(formCard, divLabel);
   widgetAddChild(formCard, uriLabel);
   widgetAddChild(formCard, uriField);
-  widgetAddChild(formCard, HStack(8, [cancelBtn, Spacer(), saveBtn]));
+  widgetAddChild(formCard, testStatus);
+  widgetAddChild(formCard, HStack(8, [cancelBtn, Spacer(), testBtn, saveBtn]));
 
   widgetAddChild(formContainer, formCard);
   widgetMatchParentWidth(formCard);

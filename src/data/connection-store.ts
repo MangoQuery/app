@@ -67,7 +67,10 @@ function esc(s: string): string {
 
 function initDb(): any {
   const d: any = new Database('mango.db');
-  d.prepare(`
+  // Split prepare/run across two statements — chained `d.prepare(...).run()`
+  // miscompiles in some perry codegen builds (the .run() result is a
+  // dropped POINTER-tagged ObjectHeader that aliases the next allocation).
+  const createConns: any = d.prepare(`
     CREATE TABLE IF NOT EXISTS connections (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -88,13 +91,15 @@ function initDb(): any {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
-  `).run();
-  d.prepare(`
+  `);
+  createConns.run();
+  const createState: any = d.prepare(`
     CREATE TABLE IF NOT EXISTS app_state (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     )
-  `).run();
+  `);
+  createState.run();
   return d;
 }
 
@@ -128,9 +133,8 @@ function rowToProfile(row: any): any {
 export function getAllConnections(): any[] {
   if (isWeb) return webGetConnections();
   const db: any = initDb();
-  const rows: any = db.prepare(
-    'SELECT * FROM connections ORDER BY updated_at DESC'
-  ).all();
+  const selStmt: any = db.prepare('SELECT * FROM connections ORDER BY updated_at DESC');
+  const rows: any = selStmt.all();
   const result: any[] = [];
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i] as any;
@@ -164,16 +168,53 @@ export function createConnection(data: any): any {
   const color = esc(data.color || '#FF9F1C');
   const connStr = esc(data.connectionString || '');
 
-  // Use direct SQL values — Perry's codegen only passes first arg to stmt.run()
-  db.prepare(
-    "INSERT INTO connections (id, name, host, port, use_connection_string, connection_string, auth_enabled, username, password, auth_database, auth_mechanism, tls_enabled, tls_ca_file, tls_cert_file, tls_allow_invalid_certs, color, created_at, updated_at) VALUES ('" + id + "', '" + name + "', '" + host + "', " + port + ", " + (connStr ? '1' : '0') + ", '" + connStr + "', 0, '', '', '', 'SCRAM-SHA-256', 0, '', '', 0, '" + color + "', " + now + ", " + now + ")"
-  ).run();
+  // Use direct SQL values — Perry's codegen only passes first arg to stmt.run().
+  // Split prepare/run across two statements: chained `db.prepare(...).run()`
+  // followed by an object-literal return triggers a perry codegen crash on
+  // current builds.
+  const insertSql = "INSERT INTO connections (id, name, host, port, use_connection_string, connection_string, auth_enabled, username, password, auth_database, auth_mechanism, tls_enabled, tls_ca_file, tls_cert_file, tls_allow_invalid_certs, color, created_at, updated_at) VALUES ('" + id + "', '" + name + "', '" + host + "', " + port + ", " + (connStr ? '1' : '0') + ", '" + connStr + "', 0, '', '', '', 'SCRAM-SHA-256', 0, '', '', 0, '" + color + "', " + now + ", " + now + ")";
+  const insertStmt: any = db.prepare(insertSql);
+  insertStmt.run();
 
   return {
     id: id, name: data.name || 'Untitled', host: data.host || 'localhost', port: port,
     connectionString: data.connectionString || '',
     createdAt: now, updatedAt: now,
   };
+}
+
+export function updateConnection(id: string, data: any): boolean {
+  if (isWeb) {
+    const conns = webGetConnections();
+    let found = false;
+    for (let i = 0; i < conns.length; i++) {
+      if (conns[i].id === id) {
+        const c = conns[i];
+        c.name = data.name || c.name;
+        c.host = data.host || c.host;
+        c.port = data.port || c.port;
+        if (data.connectionString !== undefined) c.connectionString = data.connectionString;
+        if (data.color !== undefined) c.color = data.color;
+        c.updatedAt = Date.now();
+        found = true;
+        break;
+      }
+    }
+    if (found) webSaveConnections(conns);
+    return found;
+  }
+  const db: any = initDb();
+  const now = Date.now();
+  const escId = esc(id);
+  const name = esc(data.name || '');
+  const host = esc(data.host || 'localhost');
+  const port = data.port || 27017;
+  const connStr = esc(data.connectionString || '');
+  const color = esc(data.color || '#FF9F1C');
+  const sql = "UPDATE connections SET name = '" + name + "', host = '" + host + "', port = " + port + ", connection_string = '" + connStr + "', use_connection_string = " + (connStr ? '1' : '0') + ", color = '" + color + "', updated_at = " + now + " WHERE id = '" + escId + "'";
+  const updStmt: any = db.prepare(sql);
+  updStmt.run();
+  return true;
 }
 
 export function deleteConnection(id: string): boolean {
@@ -187,7 +228,8 @@ export function deleteConnection(id: string): boolean {
     return true;
   }
   const db: any = initDb();
-  db.prepare("DELETE FROM connections WHERE id = '" + esc(id) + "'").run();
+  const delStmt: any = db.prepare("DELETE FROM connections WHERE id = '" + esc(id) + "'");
+  delStmt.run();
   return true;
 }
 
@@ -199,7 +241,8 @@ export function saveState(key: string, value: string): void {
     return;
   }
   const db: any = initDb();
-  db.prepare("INSERT OR REPLACE INTO app_state (key, value) VALUES ('" + esc(key) + "', '" + esc(value) + "')").run();
+  const setStmt: any = db.prepare("INSERT OR REPLACE INTO app_state (key, value) VALUES ('" + esc(key) + "', '" + esc(value) + "')");
+  setStmt.run();
 }
 
 export function getState(key: string): string {
@@ -207,7 +250,8 @@ export function getState(key: string): string {
     return localStorage.getItem('mango-state-' + key) || '';
   }
   const db: any = initDb();
-  const row: any = db.prepare("SELECT value FROM app_state WHERE key = '" + esc(key) + "'").get();
+  const getStmt: any = db.prepare("SELECT value FROM app_state WHERE key = '" + esc(key) + "'");
+  const row: any = getStmt.get();
   if (row) return (row as any).value;
   return '';
 }
