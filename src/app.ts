@@ -26,13 +26,13 @@ import { trackAppLaunch, trackConnect, trackQuery } from './data/telemetry';
 import { parallelMap, spawn } from 'perry/thread';
 import { prettyPrintJson, extractIdShort, extractFields, processDocForDisplay } from './data/json-utils';
 
-// --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android, 3=Windows, 4=Linux, 5=Web) ---
+// --- Platform detection (compile-time: 0=macOS, 1=iOS, 2=Android, 3=Windows, 4=Linux, 5=Web, 9=HarmonyOS) ---
 declare const __platform__: number;
 const isIOS = __platform__ === 1;
 const isWeb = __platform__ === 5;
 const iPad = isIOS && getDeviceIdiom() === 1;
-// iPad uses desktop layout (sidebar always visible, wider padding); iPhone/Android use mobile layout
-const mobile = (__platform__ === 1 || __platform__ === 2) && !iPad;
+// iPad uses desktop layout (sidebar always visible, wider padding); iPhone/Android/HarmonyOS use mobile layout
+const mobile = (__platform__ === 1 || __platform__ === 2 || __platform__ === 9) && !iPad;
 
 // --- Screenshot mode (0=off, 1=welcome, 2=browse, 3=query, 4=edit, 5=about) ---
 // Patched via sed by screenshots/capture-ios.sh before each compile
@@ -311,6 +311,9 @@ let lastConnError = '';
 
 async function connectToMongo(uri: string): Promise<boolean> {
   lastConnError = '';
+  console.log('[connect] uri =', uri);
+  console.log('[connect] uri.length =', uri.length);
+  console.log('[connect] uri.head14 =', uri.substring(0, 14));
   if (isWeb) {
     try { await _wsSend('connect', { uri }); currentConnUri = uri; trackConnect(); return true; }
     catch (e: any) { lastConnError = e.message || 'Connection failed via server'; return false; }

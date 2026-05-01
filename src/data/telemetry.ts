@@ -13,9 +13,17 @@ else if (__platform__ === 2) platformName = 'android';
 else if (__platform__ === 3) platformName = 'windows';
 else if (__platform__ === 4) platformName = 'linux';
 else if (__platform__ === 5) platformName = 'web';
+else if (__platform__ === 9) platformName = 'harmonyos';
 
 function trackEvent(event: string, dims: string): void {
   try {
+    // HarmonyOS: skip telemetry. fetch() returns a Promise that holds open
+    // the runtime's microtask drain at process startup, blocking onCreate
+    // for ~6 seconds. The OHOS scheduler's 5s LIFECYCLE_TIMEOUT then kills
+    // the app before its UI becomes foreground. Until Perry's runtime
+    // either (a) stops draining unobserved promises at exit or (b) gives
+    // fetch a tighter default connect-timeout, we have to opt out here.
+    if (__platform__ === 9) return;
     const val = getState('analyticsEnabled');
     if (val === '0' || val === 'false') return;
     const body = '{"event":"' + event + '","dims":' + dims + '}';
