@@ -1502,12 +1502,9 @@ buttonSetTextColor(browserInfoBtn, tmR, tmG, tmB, 1.0);
 if (!mobile) widgetSetHidden(browserInfoBtn, 1);
 
 // Branded toolbar — must use inline array literals (Perry codegen doesn't support variable arrays)
-let toolbarRow: any;
-if (mobile) {
-  toolbarRow = HStack(10, [sidebarToggle, Spacer(), connLabel, browserInfoBtn, disconnectBtn]);
-} else {
-  toolbarRow = HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
-}
+const toolbarRow = mobile
+  ? HStack(10, [sidebarToggle, Spacer(), connLabel, browserInfoBtn, disconnectBtn])
+  : HStack(10, [browserLogo, browserTitle, Spacer(), connLabel, disconnectBtn]);
 const toolbarBox = VStack(0, [toolbarRow]);
 setPadding(toolbarBox, isIOS ? 52 : (__platform__ === 4 ? 6 : 12), mobile ? 16 : 24, __platform__ === 4 ? 6 : 12, mobile ? 16 : 24); // iOS/iPad top safe area; Linux: tighter padding
 if (__platform__ === 4) {
